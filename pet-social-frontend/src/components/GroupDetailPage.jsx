@@ -4,6 +4,7 @@ import axios from "axios";
 import PostForm from "./PostForm";
 import PostCard from "./PostCard";
 import { toast } from "react-toastify";
+import Button from "./Button";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -112,82 +113,82 @@ const GroupDetailPage = () => {
     }
   };
 
-  const buttonStyle =
-    "text-sm px-4 py-2 border border-purple-400 bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition-all";
-
   return (
-    <div className="flex flex-col lg:flex-row gap-8 bg-[#f3e6f5] p-6 rounded-xl">
+    <div className="bg-[#baa6ba] border-4 border-white rounded-2xl shadow-inner p-6">
       {group && (
-        <>
-          <div className="w-full lg:w-1/4 flex flex-col items-center gap-4">
-            <button
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Левая панель */}
+          <div className="w-full lg:w-1/4 bg-[#f3e6f5] p-4 rounded-2xl shadow-md flex flex-col items-center gap-4">
+            <Button
               onClick={() => navigate(-1)}
-              className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg"
+              variant="secondary"
+              className="w-full"
             >
               ← Назад
-            </button>
+            </Button>
 
             {group.avatar ? (
               <img
                 src={`http://localhost:8000${group.avatar}`}
                 alt={group.name}
-                className="w-20 h-20 rounded-full object-cover"
+                className="w-24 h-24 rounded-full object-cover border-2 border-white shadow"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-sm">
+              <div className="w-24 h-24 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-lg border shadow">
                 {group.name[0]?.toUpperCase()}
               </div>
             )}
 
-            <h2 className="text-xl font-bold">{group.name}</h2>
+            <h2 className="text-xl font-bold text-[#4b3f4e] text-center">{group.name}</h2>
 
-            <button
+            <Button
               onClick={() => navigate(`/profile/${group.creator}`)}
-              className={`${buttonStyle} w-full flex items-center justify-center gap-2`}
+              variant="primary"
+              className="w-full"
             >
-              👑 Создатель
-            </button>
+              Создатель
+            </Button>
 
-            <button
+            <Button
               onClick={() => {
                 if (!showSubscribers) fetchSubscribers();
                 setShowSubscribers((prev) => !prev);
               }}
-              className={`${buttonStyle} w-full flex items-center justify-center gap-2`}
+              variant="secondary"
+              className="w-full"
             >
-              👥 Подписчики ({group.subscribers?.length || 0})
-            </button>
+              Подписчики ({group.subscribers?.length || 0})
+            </Button>
 
-            {String(group.creator) === String(currentUserId) && (
-              <button
+            {String(group.creator) === String(currentUserId) ? (
+              <Button
                 onClick={() => navigate(`/groups/${group.id}/edit`)}
-                className={`${buttonStyle} w-full`}
+                variant="lightGreen"
+                className="w-full"
               >
                 ✏️ Редактировать
-              </button>
-            )}
-
-            {String(group.creator) !== String(currentUserId) && (
-              isSubscribed ? (
-                <button
-                  onClick={handleUnsubscribe}
-                  className={`${buttonStyle} w-full`}
-                >
-                  ❌ Отменить подписку
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubscribe}
-                  className={`${buttonStyle} w-full`}
-                >
-                  ✅ Подписаться
-                </button>
-              )
+              </Button>
+            ) : isSubscribed ? (
+              <Button
+                onClick={handleUnsubscribe}
+                variant="danger"
+                className="w-full"
+              >
+                 Отписаться
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubscribe}
+                variant="lightGreen"
+                className="w-full"
+              >
+                Подписаться
+              </Button>
             )}
 
             {showSubscribers && (
-              <div className="bg-white p-4 mt-4 w-full rounded shadow text-left border border-purple-300">
-                <h4 className="font-bold mb-2 text-purple-800">Подписчики</h4>
+              <div className="bg-white p-4 mt-4 w-full rounded-2xl border border-[#baa6ba] shadow">
+                <h4 className="font-bold mb-2 text-[#4b3f4e]">Подписчики</h4>
                 {subscribersData.length === 0 ? (
                   <p className="text-sm text-gray-500">Нет подписчиков</p>
                 ) : (
@@ -200,7 +201,7 @@ const GroupDetailPage = () => {
                       >
                         {user.avatar ? (
                           <img
-                            src={`http://localhost:8000${user.avatar}`}
+                            src={user.avatar.startsWith("http") ? user.avatar : `http://localhost:8000${user.avatar}`}
                             alt={user.username}
                             className="w-8 h-8 rounded-full object-cover"
                           />
@@ -209,7 +210,7 @@ const GroupDetailPage = () => {
                             {user.username[0]?.toUpperCase()}
                           </div>
                         )}
-                        <span className="text-sm">{user.username}</span>
+                        <span className="text-sm text-[#4b3f4e]">{user.username}</span>
                       </li>
                     ))}
                   </ul>
@@ -218,8 +219,9 @@ const GroupDetailPage = () => {
             )}
           </div>
 
+          {/* Правая часть: посты */}
           <div className="flex-1 space-y-4">
-            {group && group.creator && String(group.creator) === String(currentUserId) && (
+            {group.creator && String(group.creator) === String(currentUserId) && (
               <PostForm onPostSubmit={handlePostCreated} groupId={id} />
             )}
 
@@ -236,7 +238,7 @@ const GroupDetailPage = () => {
               <p className="text-gray-500">Постов нет</p>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

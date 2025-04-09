@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Button from "./Button";
 
 const PostForm = ({ onPostSubmit, groupId }) => {
   const [content, setContent] = useState('');
@@ -26,7 +27,6 @@ const PostForm = ({ onPostSubmit, groupId }) => {
       formData.append("images", img);
     });
 
-
     onPostSubmit(formData);
     setContent('');
     setHashtags('');
@@ -51,24 +51,28 @@ const PostForm = ({ onPostSubmit, groupId }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-2 border-green-300 bg-green-50 p-4 rounded-xl shadow w-full">
-      <div className="space-y-3">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-[#baa6ba] p-4 rounded-2xl shadow-inner border-4 border-white w-full"
+    >
+      <div className="bg-[#f3e6f5] rounded-2xl p-4 space-y-4">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Ваш пост..."
-          className="w-full p-2 border rounded"
+          className="w-full p-3 rounded-2xl border border-[#baa6ba] resize-none focus:outline-none focus:ring-2 focus:ring-[#b46db6]"
+          rows={4}
         />
         <input
           type="text"
           value={hashtags}
           onChange={(e) => setHashtags(e.target.value)}
           placeholder="Хэштеги (обязательно, разделяйте пробелами)"
-          className="w-full p-2 border rounded"
+          className="w-full p-3 rounded-2xl border border-[#baa6ba] focus:outline-none focus:ring-2 focus:ring-[#b46db6]"
         />
 
         <div className="flex flex-col items-center">
-          <label className="cursor-pointer px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition mb-2">
+          <label className="cursor-pointer px-6 py-2 bg-[#c4e1c1] text-[#2f4f28] rounded-2xl hover:bg-[#a4d0a0]  transition mb-2">
             Выбрать фото (до 10)
             <input
               type="file"
@@ -85,14 +89,14 @@ const PostForm = ({ onPostSubmit, groupId }) => {
                 <img
                   src={url}
                   alt="preview"
-                  className="object-cover w-full h-full rounded"
+                  className="object-cover w-full h-full rounded-2xl border-2 border-[#baa6ba]"
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1"
+                  className="absolute top-[-8px] right-[-8px] bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow"
                 >
-                  x
+                  ×
                 </button>
               </div>
             ))}
@@ -100,12 +104,13 @@ const PostForm = ({ onPostSubmit, groupId }) => {
         </div>
 
         <div className="flex justify-center">
-          <button
+          <Button
             type="submit"
-            className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+            variant="lightGreen"
+            className="px-12"
           >
             Опубликовать
-          </button>
+          </Button>
         </div>
       </div>
     </form>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import PostCard from "./PostCard";
+import Button from "./Button";
 
 const NewsFeed = () => {
   const [posts, setPosts] = useState([]);
@@ -70,7 +71,7 @@ const handleHashtagSearch = async () => {
 
   return (
     <div className="max-w-3xl mx-auto py-6 px-4 bg-[#f3e6f5] border-4 border-white rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold text-green-700 mb-4 text-center">
+      <h2 className="text-2xl font-bold text-purple-900 mb-4 text-center">
         {isSearchMode ? `Результаты по хэштегу: #${hashtagQuery}` : "Лента новостей"}
       </h2>
 
@@ -79,14 +80,15 @@ const handleHashtagSearch = async () => {
           value={hashtagQuery}
           onChange={(e) => setHashtagQuery(e.target.value)}
           placeholder="Поиск по хэштегам"
-          className="p-2 border rounded flex-grow"
+          className="p-2 border rounded-2xl flex-grow"
         />
-        <button
+        <Button
           onClick={handleHashtagSearch}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          variant="lightGreen"
+          className="px-4 py-2 rounded hover:bg-green-600"
         >
           Поиск
-        </button>
+        </Button>
         {!isSearchMode && (
           <button
             onClick={fetchNewsPosts}

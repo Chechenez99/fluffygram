@@ -8,6 +8,7 @@ import PostForm from "./PostForm";
 import PostCard from "./PostCard";
 import FriendsPage from "./FriendsPage";
 import GroupsPage from "./GroupsPage";
+import Button from "./Button";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -154,21 +155,23 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
                       <div className="flex items-center justify-center h-full text-green-400">👤</div>
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full cursor-pointer">
+                  <label className="absolute bottom-0 right-0 bg-[#b46db6] text-white p-2 rounded-full cursor-pointer">
                     <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" disabled={isUploading} />
                     📷
                   </label>
                 </div>
-                <h2 className="text-3xl font-semibold text-green-700">{user?.username}</h2>
-                <p className="text-green-600">{user?.email}</p>
-                {user?.city && <p className="text-green-500 mt-1">📍 {user.city}</p>}
+                <h2 className="text-3xl font-semibold text-purple-900">{user?.username}</h2>
+                <p className="text-purple-900">{user?.email}</p>
+                {user?.city && <p className="text-purple-9000 mt-1">📍 {user.city}</p>}
                 {user?.bio && <p className="text-green-700 mt-4">{user.bio}</p>}
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-green-700 mb-2">Ваши питомцы</h3>
-                <button onClick={() => setIsAddPetDialogOpen(true)} className="mb-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                <h3 className="text-xl font-semibold text-purple-900 mb-2">Ваши питомцы</h3>
+                <div className="flex justify-center mb-6">
+                <Button onClick={() => setIsAddPetDialogOpen(true)} variant="lightGreen" className="items-center">
                   + Добавить питомца
-                </button>
+                </Button>
+                </div>
                 <Dialog open={isAddPetDialogOpen} onOpenChange={setIsAddPetDialogOpen}>
                   <DialogContent>
                     <DialogHeader>
@@ -186,8 +189,8 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
               </div>
             </div>
             <div className="md:w-2/3 space-y-6  ">
-              <h3 className="text-2xl font-semibold text-green-700">Ваши посты</h3>
-              <div className="border-2 border-green-300 bg-green-50 p-4 rounded-lg">
+              <h3 className="text-2xl font-semibold text-purple-900">Ваши посты</h3>
+              <div className=" rounded-lg">
                 <PostForm onPostSubmit={handleUserPostSubmit} />
               </div>
               {userPosts.length > 0 ? (
@@ -207,9 +210,9 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
     return (
       <div className="text-center p-6 bg-white rounded-lg shadow-lg mt-8">
         <p className="text-red-500 mb-4">Произошла ошибка: {error}</p>
-        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+        <Button onClick={() => window.location.reload()} variant="lightGreen" className="w-full">
           Попробовать снова
-        </button>
+        </Button>
       </div>
     );
   }

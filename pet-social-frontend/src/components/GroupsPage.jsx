@@ -4,6 +4,7 @@ import axios from "axios";
 import { FiEdit2 } from "react-icons/fi";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import Button from "./Button";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -111,201 +112,195 @@ const GroupsPage = () => {
   }, [searchQuery, sortOption]);
 
   return (
-    <div className="p-6 bg-[#f3e6f5] rounded-xl">
-      <ToastContainer position="top-right" autoClose={3000} />
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg"
+  <div className="bg-[#baa6ba] border-4 border-white rounded-2xl shadow-inner p-6">
+    <ToastContainer position="top-right" autoClose={3000} />
+
+    <Button
+      onClick={() => navigate(-1)}
+      variant="secondary"
+      className="mb-6"
+    >
+      ← Назад
+    </Button>
+
+    <div className="flex flex-wrap gap-4 mb-6 items-center">
+      <Button onClick={() => navigate("/groups/create")} variant="purple">
+        Создать группу
+      </Button>
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Поиск группы"
+        className="flex-grow p-2 rounded-2xl border border-[#baa6ba] focus:ring-[#b46db6] focus:outline-none bg-white"
+      />
+      <select
+        value={sortOption}
+        onChange={(e) => setSortOption(e.target.value)}
+        className="p-2 rounded-2xl border border-[#baa6ba] focus:ring-[#b46db6] bg-white"
       >
-        ← Назад
-      </button>
+        <option value="alphabet">По алфавиту</option>
+        <option value="popular">По популярности</option>
+      </select>
+      <Button onClick={handleSearch} variant="lightGreen">
+        Поиск
+      </Button>
+    </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => navigate("/groups/create")}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-        >
-          Создать группу
-        </button>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Поиск группы"
-          className="p-2 border rounded flex-grow"
-        />
-        <select
-          value={sortOption}
-          onChange={(e) => setSortOption(e.target.value)}
-          className="p-2 border rounded"
-        >
-          <option value="alphabet">По алфавиту</option>
-          <option value="popular">По популярности</option>
-        </select>
-        <button
-          onClick={handleSearch}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg"
-        >
-          Поиск
-        </button>
-      </div>
-
-      {searchQuery.trim() !== "" ? (
-        <div>
-          <h3 className="text-xl font-semibold mb-4">Результаты поиска</h3>
-          {searchResults.length === 0 ? (
-            <p className="text-gray-500">Ничего не найдено</p>
-          ) : (
-            searchResults.map((group) => {
-              const isSubscribed = subscribedGroups.some(g => g.id === group.id);
-              return (
+    {searchQuery.trim() !== "" ? (
+      <div className="bg-[#f3e6f5] p-4 rounded-2xl shadow space-y-4">
+        <h3 className="text-xl font-semibold text-[#4b3f4e]">Результаты поиска</h3>
+        {searchResults.length === 0 ? (
+          <p className="text-gray-500">Ничего не найдено</p>
+        ) : (
+          searchResults.map((group) => {
+            const isSubscribed = subscribedGroups.some(g => g.id === group.id);
+            return (
+              <div
+                key={group.id}
+                className="flex justify-between items-center bg-white rounded-xl border border-[#baa6ba] p-4 shadow"
+              >
                 <div
-                  key={group.id}
-                  className="flex justify-between items-center border p-4 rounded mb-4"
+                  onClick={() => navigate(`/groups/${group.id}`)}
+                  className="flex items-center gap-4 cursor-pointer"
                 >
-                  <div
-                    onClick={() => navigate(`/groups/${group.id}`)}
-                    className="flex items-center gap-4 cursor-pointer"
-                  >
-                    {group.avatar ? (
-                          <img
-                            src={`http://localhost:8000${group.avatar}`}
-                            alt={group.name}
-                            className="w-16 h-16 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-sm">
-                            {group.name[0]?.toUpperCase()}
-                          </div>
-                        )}
-                    <div>
-                      <h4 className="font-bold">{group.name}</h4>
-                      <p>{group.description}</p>
-                      <p className="text-sm text-gray-500">
-                            Подписчиков: {group.subscribers ? group.subscribers.length : 0}
-                      </p>
-                      {isSubscribed && (
-                        <p className="text-sm text-green-600 mt-1">Вы подписаны</p>
-                      )}
-                    </div>
-                  </div>
-                  {isSubscribed ? (
-                    <button
-                      onClick={() => handleUnsubscribe(group.id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg"
-                    >
-                      Удалить подписку
-                    </button>
+                  {group.avatar ? (
+                    <img
+                      src={`http://localhost:8000${group.avatar}`}
+                      alt={group.name}
+                      className="w-16 h-16 rounded-full object-cover border"
+                    />
                   ) : (
-                    <button
-                      onClick={() => handleSubscribe(group.id)}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                    >
-                      Подписаться
-                    </button>
+                    <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-xl border">
+                      {group.name[0]?.toUpperCase()}
+                    </div>
                   )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      ) : (
-        <>
-          <div>
-            <h3 className="text-xl font-semibold mb-4">Мои группы</h3>
-            {myGroups.map((group) => (
-              <div
-                key={group.id}
-                className="border p-4 rounded mb-4 flex items-center justify-between"
-              >
-                <div
-                  className="flex items-center gap-4 cursor-pointer"
-                  onClick={() => navigate(`/groups/${group.id}`)}
-                >
-                  {group.avatar ? (
-                      <img
-                        src={`http://localhost:8000${group.avatar}`}
-                        alt={group.name}
-                        className="w-16 h-16 rounded-full object-cover border"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-xl border">
-                        {group.name[0]?.toUpperCase()}
-                      </div>
-                    )}
-
                   <div>
-                    <h4 className="font-bold flex items-center gap-2">
-                      {group.name}
-                      <FiEdit2
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/groups/${group.id}/edit`);
-                        }}
-                        className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                        title="Редактировать группу"
-                      />
-                    </h4>
-                    <p>{group.description}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDelete(group.id)}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Удалить
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold mb-4">
-              Группы, на которые я подписана
-            </h3>
-            {subscribedGroups.map((group) => (
-              <div
-                key={group.id}
-                className="border p-4 rounded mb-4 flex items-center justify-between"
-              >
-                <div
-                  onClick={() => navigate(`/groups/${group.id}`)}
-                  className="flex items-center gap-4 cursor-pointer"
-                >
-                  {group.avatar ? (
-              <img
-                src={`http://localhost:8000${group.avatar}`}
-                alt={group.name}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-sm">
-                {group.name[0]?.toUpperCase()}
-              </div>
-            )}
-
-                  <div>
-                    <h4 className="font-bold">{group.name}</h4>
-                    <p>{group.description}</p>
+                    <h4 className="font-bold text-[#4b3f4e]">{group.name}</h4>
+                    <p className="text-sm text-gray-700">{group.description}</p>
                     <p className="text-sm text-gray-500">
                       Подписчиков: {group.subscribers ? group.subscribers.length : 0}
                     </p>
-
+                    {isSubscribed && (
+                      <p className="text-sm text-green-600 mt-1">Вы подписаны</p>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleUnsubscribe(group.id)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                >
-                  Отменить подписку
-                </button>
+                {isSubscribed ? (
+                  <Button
+                    onClick={() => handleUnsubscribe(group.id)}
+                    variant="danger"
+                  >
+                    Отписаться
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleSubscribe(group.id)}
+                    variant="lightGreen"
+                  >
+                    Подписаться
+                  </Button>
+                )}
               </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+            );
+          })
+        )}
+      </div>
+    ) : (
+      <>
+        {/* Мои группы */}
+        <div className="bg-[#f3e6f5] p-4 rounded-2xl shadow space-y-4">
+          <h3 className="text-xl font-semibold text-[#4b3f4e]">Мои группы</h3>
+          {myGroups.map((group) => (
+            <div
+              key={group.id}
+              className="bg-white p-4 rounded-xl border border-[#baa6ba] flex justify-between items-center shadow"
+            >
+              <div
+                className="flex items-center gap-4 cursor-pointer"
+                onClick={() => navigate(`/groups/${group.id}`)}
+              >
+                {group.avatar ? (
+                  <img
+                    src={`http://localhost:8000${group.avatar}`}
+                    alt={group.name}
+                    className="w-16 h-16 rounded-full object-cover border"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-xl border">
+                    {group.name[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-bold flex items-center gap-2 text-[#4b3f4e]">
+                    {group.name}
+                    <FiEdit2
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/groups/${group.id}/edit`);
+                      }}
+                      className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                      title="Редактировать"
+                    />
+                  </h4>
+                  <p className="text-sm text-gray-700">{group.description}</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => handleDelete(group.id)}
+                variant="danger"
+              >
+                Удалить
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {/* Подписанные */}
+        <div className="bg-[#f3e6f5] mt-8 p-4 rounded-2xl shadow space-y-4">
+          <h3 className="text-xl font-semibold text-[#4b3f4e]">Подписки</h3>
+          {subscribedGroups.map((group) => (
+            <div
+              key={group.id}
+              className="bg-white p-4 rounded-xl border border-[#baa6ba] flex justify-between items-center shadow"
+            >
+              <div
+                onClick={() => navigate(`/groups/${group.id}`)}
+                className="flex items-center gap-4 cursor-pointer"
+              >
+                {group.avatar ? (
+                  <img
+                    src={`http://localhost:8000${group.avatar}`}
+                    alt={group.name}
+                    className="w-16 h-16 rounded-full object-cover border"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-purple-200 text-purple-800 font-bold flex items-center justify-center text-xl border">
+                    {group.name[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-bold text-[#4b3f4e]">{group.name}</h4>
+                  <p className="text-sm text-gray-700">{group.description}</p>
+                  <p className="text-sm text-gray-500">
+                    Подписчиков: {group.subscribers ? group.subscribers.length : 0}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => handleUnsubscribe(group.id)}
+                variant="danger"
+              >
+                Отписаться
+              </Button>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+);
+
 };
 
 export default GroupsPage;

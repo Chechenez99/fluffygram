@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import Button from "./Button";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -128,11 +129,11 @@ const FriendsPage = () => {
           placeholder="Поиск по имени"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-2 border rounded mr-2"
+          className="p-2 border rounded-2xl  mr-2"
         />
-        <button onClick={handleSearch} className="bg-green-500 text-white p-2 rounded">
+        <Button onClick={handleSearch} variant = 'lightGreen' className="p-2 rounded">
           Искать
-        </button>
+        </Button>
       </div>
 
       {/* Найденные пользователи */}
@@ -161,23 +162,25 @@ const FriendsPage = () => {
               </div>
 
               {user.isFriend ? (
-                <button
+                <Button
                   onClick={() => removeFriend(user.id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
+                  variant="danger"
+                  className="px-3 py-1 rounded"
                 >
                   Удалить из друзей
-                </button>
+                </Button>
               ) : user.requestSent ? (
-                <button disabled className="bg-gray-400 text-white px-3 py-1 rounded">
+                <Button disabled className="px-3 py-1 rounded" variant="disabled" >
                   Заявка отправлена
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
                   onClick={() => sendFriendRequest(user.id)}
-                  className="bg-green-500 text-white px-3 py-1 rounded"
+                  variant="lightGreen"
+                  className=" px-3 py-1 rounded"
                 >
                   Добавить в друзья
-                </button>
+                </Button>
               )}
             </div>
           ))
@@ -211,12 +214,13 @@ const FriendsPage = () => {
                   <p className="text-sm text-gray-600">{friend.email}</p>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={() => removeFriend(friend.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded"
+                variant="danger"
+                className="px-3 py-1 rounded"
               >
                 Удалить из друзей
-              </button>
+              </Button>
             </div>
           ))
         ) : (
@@ -250,7 +254,7 @@ const FriendsPage = () => {
                 </div>
               </div>
               <div>
-                <button
+                <Button
                   onClick={async () => {
                     try {
                       const token = localStorage.getItem("access");
@@ -266,11 +270,12 @@ const FriendsPage = () => {
                       toast.error("Ошибка принятия заявки");
                     }
                   }}
-                  className="bg-green-500 text-white px-3 py-1 rounded mr-2"
+                  className=" px-3 py-1 rounded mr-2"
+                  variant="lightGreen"
                 >
                   Принять
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={async () => {
                     try {
                       const token = localStorage.getItem("access");
@@ -284,10 +289,11 @@ const FriendsPage = () => {
                       toast.error("Ошибка отклонения заявки");
                     }
                   }}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
+                  className="px-3 py-1 rounded"
+                  variant="danger"
                 >
                   Отклонить
-                </button>
+                </Button>
               </div>
             </div>
           ))

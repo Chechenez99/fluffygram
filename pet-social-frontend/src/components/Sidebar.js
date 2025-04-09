@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import Button from "./Button";
 
 const Sidebar = ({ selectedSection, setSelectedSection, onLogout }) => {
   const navigate = useNavigate();
@@ -51,32 +52,32 @@ const Sidebar = ({ selectedSection, setSelectedSection, onLogout }) => {
 
           return (
             <li key={item.section} className="relative">
-              <button
+              <Button
                 onClick={() => handleClick(item)}
-                className={`w-full text-left px-4 py-2 rounded-xl transition-colors ${
-                  isActive
-                    ? "bg-green-500 text-white font-semibold"
-                    : "text-green-700 hover:bg-green-100"
-                }`}
+                variant={isActive ? 'primary' : 'secondary'} // Передаем правильный вариант
+                className="w-full text-left px-4 py-2 rounded-xl transition-colors"
               >
                 {item.label}
                 {item.section === "friends" && friendRequestsCount > 0 && (
-                  <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {friendRequestsCount}
-                  </span>
+                <span className="absolute top-2.5 right-2 bg-white text-[#b46db6] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border border-[#b46db6]">
+                  {friendRequestsCount}
+                </span>
+
                 )}
-              </button>
+              </Button>
             </li>
           );
         })}
       </ul>
 
-      <button
+      {/* Кнопка выхода */}
+      <Button
         onClick={onLogout}
-        className="mt-6 px-4 py-2 bg-orange-700 text-white rounded-xl hover:bg-orange-900 transition"
+        variant="danger"
+        className="mt-6 px-4 py-2 rounded-xl hover:bg-red-600 transition"
       >
         Выйти
-      </button>
+      </Button>
     </div>
   );
 };

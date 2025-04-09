@@ -53,7 +53,6 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
       [name]: files ? files[0] : value,
     }));
 
-    // Предпросмотр изображения
     if (name === 'avatar' && files?.[0]) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -62,7 +61,6 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
       reader.readAsDataURL(files[0]);
     }
 
-    // Очищаем ошибку при изменении поля
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -70,55 +68,25 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsLoading(true);
 
     try {
-      // Логируем данные перед обработкой
-      console.log("Исходные данные формы:", data);
-      
       const formData = new FormData();
-      
-      // Обязательные поля
       formData.append("name", data.name);
       formData.append("species", data.species);
-      
-      // Опциональные поля
       if (data.breed) formData.append("breed", data.breed);
       if (data.about) formData.append("about", data.about);
-      
-      // Расчет возраста - отправлять как целое число в месяцах
+
       const ageInYears = data.age ? parseFloat(data.age) : 0;
       const ageInMonths = data.ageMonths ? parseFloat(data.ageMonths) : 0;
-      
-      // Рассчитываем общий возраст в месяцах
       const totalAgeInMonths = Math.round(ageInYears * 12 + ageInMonths);
       formData.append("age", totalAgeInMonths.toString());
-      
-      // Логируем данные для отладки
-      console.log("Отправка данных на сервер:");
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value instanceof File ? 'File: ' + value.name : value}`);
-      }
-      
-      // Функция для отображения возраста в формате 'годы, месяцы'
-      const formatAge = (months) => {
-        const years = Math.floor(months / 12);
-        const remainingMonths = months % 12;
-        return `${years},${remainingMonths}`;
-      };
 
-      console.log("Отображение возраста:", formatAge(totalAgeInMonths));
-      
-      // Файл аватара - отправлять только если он есть и это новый файл
       if (data.avatar && data.avatar instanceof File) {
         formData.append("avatar", data.avatar);
       }
-      
+
       const config = {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access")}`,
@@ -133,40 +101,22 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
         response = await axios.post(`${API_BASE_URL}/api/pets/`, formData, config);
         toast.success("Питомец успешно создан! 🎉");
       }
-      
-      console.log("Ответ сервера:", response.data);
+
       onSuccess?.();
     } catch (error) {
       console.error("Ошибка при отправке формы:", error);
-      
-      if (error.response) {
-        console.error("Детали ошибки:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers
-        });
-        
-        if (error.response.data) {
-          const serverErrors = error.response.data;
-          if (typeof serverErrors === 'object') {
-            Object.entries(serverErrors).forEach(([field, messages]) => {
-              const messageText = Array.isArray(messages) ? messages.join(', ') : 
-                typeof messages === 'string' ? messages :
-                JSON.stringify(messages);
-              toast.error(`${field}: ${messageText}`);
-            });
-          } else if (typeof serverErrors === 'string') {
-            toast.error(serverErrors);
-          } else {
-            toast.error(JSON.stringify(serverErrors));
-          }
+      if (error.response?.data) {
+        const serverErrors = error.response.data;
+        if (typeof serverErrors === 'object') {
+          Object.entries(serverErrors).forEach(([field, messages]) => {
+            const text = Array.isArray(messages) ? messages.join(', ') : JSON.stringify(messages);
+            toast.error(`${field}: ${text}`);
+          });
         } else {
-          toast.error(`Ошибка ${error.response.status}: ${error.response.statusText}`);
+          toast.error(typeof serverErrors === 'string' ? serverErrors : JSON.stringify(serverErrors));
         }
-      } else if (error.request) {
-        toast.error("Сервер не отвечает. Проверьте соединение с интернетом.");
       } else {
-        toast.error("Ошибка при настройке запроса: " + error.message);
+        toast.error("Ошибка соединения или запроса");
       }
     } finally {
       setIsLoading(false);
@@ -184,7 +134,6 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
       toast.success("Питомец успешно удалён");
       onSuccess?.();
     } catch (error) {
-      console.error("Ошибка при удалении:", error);
       toast.error("Не удалось удалить питомца. Попробуйте еще раз.");
     } finally {
       setIsDeleting(false);
@@ -196,18 +145,13 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
     <>
       <form onSubmit={handleSubmit} className="space-y-8 max-w-6xl mx-auto px-4">
         <div className="flex flex-col md:flex-row gap-12">
-          {/* Левая колонка с аватаром */}
           <div className="flex-shrink-0">
             <div className="flex flex-col items-center space-y-4">
-              <div className="relative w-48 h-48 rounded-full overflow-hidden bg-green-100 border-2 border-dashed border-green-300 hover:border-green-500 transition-colors">
+              <div className="relative w-48 h-48 rounded-full overflow-hidden bg-white border-2 border-dashed border-[#baa6ba] hover:border-[#b46db6] transition-colors">
                 {previewUrl ? (
-                  <img 
-                    src={previewUrl} 
-                    alt="Preview" 
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-green-400">
+                  <div className="w-full h-full flex flex-col items-center justify-center text-[#b46db6]">
                     <Upload className="w-16 h-16 mb-2" />
                     <span className="text-sm">Загрузить фото</span>
                   </div>
@@ -220,7 +164,7 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
                     accept="image/*"
                     className="hidden"
                   />
-                  <Upload className="w-8 h-8 text-white opacity-0 group-hover:opacity-100" />
+                  <Upload className="w-8 h-8 text-white" />
                 </label>
               </div>
               {errors.avatar && (
@@ -229,59 +173,46 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
             </div>
           </div>
 
-          {/* Правая колонка с полями */}
           <div className="flex-grow space-y-8">
-            {/* Основная информация */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-2">
-                  Имя питомца
-                </label>
-                <Input 
-                  name="name" 
-                  value={data.name} 
-                  onChange={handleChange} 
+                <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Имя питомца</label>
+                <Input
+                  name="name"
+                  value={data.name}
+                  onChange={handleChange}
                   placeholder="Введите имя"
-                  className={errors.name ? "border-red-500" : ""}
+                  className={errors.name ? "border-red-500" : "border-[#baa6ba] focus:ring-[#b46db6]"}
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-                )}
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-2">
-                  Вид животного
-                </label>
-                <Input 
-                  name="species" 
-                  value={data.species} 
-                  onChange={handleChange} 
+                <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Вид животного</label>
+                <Input
+                  name="species"
+                  value={data.species}
+                  onChange={handleChange}
                   placeholder="Например: кошка, собака"
-                  className={errors.species ? "border-red-500" : ""}
+                  className={errors.species ? "border-red-500" : "border-[#baa6ba] focus:ring-[#b46db6]"}
                 />
-                {errors.species && (
-                  <p className="text-red-500 text-sm mt-1">{errors.species}</p>
-                )}
+                {errors.species && <p className="text-red-500 text-sm mt-1">{errors.species}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-green-700 mb-2">
-                  Порода
-                </label>
-                <Input 
-                  name="breed" 
-                  value={data.breed} 
-                  onChange={handleChange} 
+                <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Порода</label>
+                <Input
+                  name="breed"
+                  value={data.breed}
+                  onChange={handleChange}
                   placeholder="Укажите породу"
+                  className="border-[#baa6ba] focus:ring-[#b46db6]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-green-700 mb-2">
-                    Возраст (лет)
-                  </label>
+                  <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Возраст (лет)</label>
                   <Input
                     name="age"
                     type="number"
@@ -289,16 +220,12 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
                     onChange={handleChange}
                     placeholder="Годы"
                     min="0"
-                    className={errors.age ? "border-red-500" : ""}
+                    className={errors.age ? "border-red-500" : "border-[#baa6ba] focus:ring-[#b46db6]"}
                   />
-                  {errors.age && (
-                    <p className="text-red-500 text-sm mt-1">{errors.age}</p>
-                  )}
+                  {errors.age && <p className="text-red-500 text-sm mt-1">{errors.age}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-green-700 mb-2">
-                    Месяцев
-                  </label>
+                  <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Месяцев</label>
                   <Input
                     name="ageMonths"
                     type="number"
@@ -307,35 +234,30 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
                     placeholder="0-11"
                     min="0"
                     max="11"
-                    className={errors.ageMonths ? "border-red-500" : ""}
+                    className={errors.ageMonths ? "border-red-500" : "border-[#baa6ba] focus:ring-[#b46db6]"}
                   />
-                  {errors.ageMonths && (
-                    <p className="text-red-500 text-sm mt-1">{errors.ageMonths}</p>
-                  )}
+                  {errors.ageMonths && <p className="text-red-500 text-sm mt-1">{errors.ageMonths}</p>}
                 </div>
               </div>
             </div>
 
-            {/* Описание */}
             <div>
-              <label className="block text-sm font-medium text-green-700 mb-2">
-                Описание
-              </label>
-              <Textarea 
-                name="about" 
-                value={data.about} 
-                onChange={handleChange} 
+              <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Описание</label>
+              <Textarea
+                name="about"
+                value={data.about}
+                onChange={handleChange}
                 placeholder="Расскажите о характере и привычках вашего питомца"
-                className="min-h-[150px]"
+                className="min-h-[150px] border-[#baa6ba] focus:ring-[#b46db6]"
               />
             </div>
 
-            {/* Кнопки действий */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                type="submit" 
-                disabled={isLoading} 
-                className="flex-1 py-4 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-lg font-medium"
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 text-lg py-4 justify-center"
+                variant="purple"
               >
                 {isLoading ? (
                   <>
@@ -348,13 +270,14 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
                   "Создать питомца"
                 )}
               </Button>
-              
+
               {petId && (
                 <Button
                   type="button"
                   onClick={() => setIsDeleteDialogOpen(true)}
                   disabled={isDeleting}
-                  className="px-6 py-4 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-lg font-medium"
+                  className="px-6 py-4 text-lg"
+                  variant="dangerOutline"
                 >
                   <Trash2 className="w-6 h-6" />
                 </Button>
@@ -363,7 +286,7 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
           </div>
         </div>
       </form>
-      
+
       <DeleteConfirmDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}

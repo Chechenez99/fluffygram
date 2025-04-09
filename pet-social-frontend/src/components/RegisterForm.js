@@ -129,7 +129,7 @@ const RegisterForm = ({ onBack, onLogin }) => {
   return (
     <div className="flex justify-center items-center bg-[#baa6ba]">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm space-y-6">
-        <h2 className="text-2xl font-bold text-center text-green-700">Регистрация</h2>
+        <h2 className="text-2xl font-bold text-center text-[#7c3aed]">Регистрация</h2>
         <Input 
           type="text" 
           name="username" 
@@ -169,14 +169,15 @@ const RegisterForm = ({ onBack, onLogin }) => {
         />
         <Button 
           type="submit" 
-          className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md" 
           disabled={loading}
+          className="w-full"
         >
           {loading ? 'Загрузка...' : 'Зарегистрироваться'}
         </Button>
         <Button 
           onClick={onBack} 
-          className="w-full mt-2 bg-green-100 hover:bg-green-200 text-green-700 py-2 px-4 rounded-md"
+          variant="secondary"
+          className="w-full"
         >
           Назад
         </Button>

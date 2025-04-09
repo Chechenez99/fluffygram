@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Button from './Button';
+import Input from './Input'; // ⬅️ Подключаем Input
 
-const LoginForm = ({ onLogin }) => {
+const LoginForm = ({ onLogin, onBack }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -40,27 +42,37 @@ const LoginForm = ({ onLogin }) => {
       onSubmit={handleSubmit}
       className="bg-white p-6 rounded-xl shadow-md space-y-4 w-80"
     >
-      <h2 className="text-2xl font-bold text-green-700 text-center">Вход</h2>
-      <input
+      <h2 className="text-2xl font-bold text-[#7c3aed] text-center">Вход</h2>
+
+      <Input
         type="text"
         placeholder="Имя пользователя"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        className="w-full px-4 py-2 border border-green-300 rounded"
+        required
       />
-      <input
+
+      <Input
         type="password"
         placeholder="Пароль"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="w-full px-4 py-2 border border-green-300 rounded"
+        required
       />
-      <button
+
+      <Button
         type="submit"
-        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+        className="w-full"
       >
         Войти
-      </button>
+      </Button>
+      <Button
+        onClick={onBack} 
+        variant="secondary"
+        className="w-full"
+      >
+        Назад
+      </Button>
     </form>
   );
 };

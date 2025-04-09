@@ -5,12 +5,12 @@ import ProfilePage from "./components/ProfilePage";
 import UserProfilePage from "./components/UserProfilePage";
 import FriendsPage from "./components/FriendsPage";
 import GroupsPage from "./components/GroupsPage";
-import GroupDetailPage from "./components/GroupDetailPage";
 import MainLayout from "./components/MainLayout";
 import { ToastContainer } from "react-toastify";
 import NewsFeedPage from "./components/NewsFeed";
 import GroupCreatePage from "./components/GroupCreatePage";
 import GroupEditPage from "./components/GroupEditPage";
+import GroupDetailPage from "./components/GroupDetailPage";
 import "react-toastify/dist/ReactToastify.css";
 
 const ProtectedRoute = ({ children }) => {

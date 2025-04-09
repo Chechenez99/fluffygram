@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Button from "./Button";
+import Input from "./Input";
+import Textarea from "./textarea";
+import { Upload } from "lucide-react";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -37,65 +41,83 @@ const GroupCreatePage = () => {
   };
 
   return (
-    <div className="p-6 bg-[#f3e6f5] rounded-xl">
-      <button
-        onClick={() => navigate(-1)}
-        className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg"
-      >
-        ← Назад
-      </button>
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow max-w-xl mx-auto"
-        encType="multipart/form-data"
-      >
-        <h2 className="text-xl font-bold mb-4 text-green-700">Создание группы</h2>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Название группы"
-          required
-          className="w-full mb-4 p-2 border rounded"
-        />
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Описание группы"
-          className="w-full mb-4 p-2 border rounded"
-        />
-        
-        {/* Стилизованное окно для загрузки фото */}
-        <div className="relative mb-4">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
-          <div className="border-2 border-dashed border-gray-400 p-4 rounded-md">
-            {avatar ? (
-              <img
-                src={URL.createObjectURL(avatar)}
-                alt="Предпросмотр"
-                className="w-full h-full object-cover rounded-md"
-              />
-            ) : (
-              <div className="text-center text-gray-500">
-                <p>Загрузить фото</p>
-                <p className="text-sm">(Нажмите для выбора файла)</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+    <div className="bg-[#baa6ba] border-4 border-white rounded-2xl shadow-inner p-6 max-w-4xl mx-auto">
+      <div className="bg-[#f3e6f5] p-6 rounded-2xl">
+        <Button
+          onClick={() => navigate(-1)}
+          variant="secondary"
+          className="mb-6"
         >
-          Создать группу
-        </button>
-      </form>
+          ← Назад
+        </Button>
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+          encType="multipart/form-data"
+        >
+          <h2 className="text-2xl font-bold text-[#4b3f4e] mb-4">Создание группы</h2>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Название группы</label>
+              <Input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Введите название"
+                required
+                className="border-[#baa6ba] focus:ring-[#b46db6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Описание</label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Расскажите, о чём ваша группа"
+                className="w-full min-h-[120px] border-[#baa6ba] focus:ring-[#b46db6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#4b3f4e] mb-2">Аватар группы</label>
+              <div className="relative w-full h-52 bg-white border-2 border-dashed border-[#baa6ba] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#b46db6] transition">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                {avatar ? (
+                  <img
+                    src={URL.createObjectURL(avatar)}
+                    alt="Предпросмотр"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center text-[#b46db6]">
+                    <Upload className="w-10 h-10 mb-2" />
+                    <p>Загрузить фото</p>
+                    <p className="text-sm text-[#a157a7]">(нажмите, чтобы выбрать файл)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Button
+              type="submit"
+              variant="purple"
+              className="w-full justify-center text-lg py-3"
+            >
+              Создать группу
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

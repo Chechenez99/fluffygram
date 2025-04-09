@@ -7,7 +7,7 @@ from rest_framework import status
 from django.db.models import Q
 from .models import Group
 from .serializers import GroupSerializer
-from users.serializers import UserShortSerializer  # если у тебя есть короткий сериализатор
+from users.serializers import UserSerializer  # если у тебя есть короткий сериализатор
 
 class GroupSubscribersView(APIView):
     permission_classes = [IsAuthenticated]
@@ -19,7 +19,7 @@ class GroupSubscribersView(APIView):
             return Response({"error": "Группа не найдена"}, status=404)
 
         subscribers = group.subscribers.all()
-        serializer = UserShortSerializer(subscribers, many=True)
+        serializer = UserSerializer(subscribers, many=True)
         return Response(serializer.data)
 
 
