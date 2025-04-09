@@ -3,10 +3,11 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import Button from "./Button";
+import { fetchFriendRequests as updateSidebarFriendRequests } from "./Sidebar";
 
 const API_BASE_URL = "http://localhost:8000";
 
-const FriendsPage = () => {
+const FriendsPage = ({ setFriendRequestsCount }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
@@ -24,6 +25,7 @@ const FriendsPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFriendRequests(res.data);
+      updateSidebarFriendRequests(setFriendRequestsCount); // ✅ обновим уведомления
     } catch (error) {
       console.error("Ошибка загрузки заявок в друзья:", error);
     }
@@ -56,7 +58,7 @@ const FriendsPage = () => {
         const alreadyRequested = friendRequests.some(
           (fr) => fr.sender === user.id || fr.receiver === user.id
         );
-        const isFriend = friends.some(f => f.id === user.id);
+        const isFriend = friends.some((f) => f.id === user.id);
         return { ...user, requestSent: alreadyRequested, isFriend };
       });
       setUsers(updated);
@@ -87,21 +89,17 @@ const FriendsPage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Заявка отправлена!");
-      
-      // 👇 обновим локально статус
-      setUsers(prev =>
-        prev.map(user =>
+      setUsers((prev) =>
+        prev.map((user) =>
           user.id === receiverId ? { ...user, requestSent: true } : user
         )
       );
-
-      fetchFriendRequests(); // на всякий случай тоже обновим
+      fetchFriendRequests(); // обновим список и уведомления
     } catch (error) {
       console.error("Ошибка отправки заявки:", error);
       toast.error("Ошибка отправки заявки");
     }
   };
-
 
   const removeFriend = async (friendId) => {
     try {
@@ -111,7 +109,8 @@ const FriendsPage = () => {
       });
       toast.success("Друг удалён");
       fetchFriends();
-      handleSearch(); // тоже обновим
+      fetchFriendRequests();
+      handleSearch();
     } catch (error) {
       console.error("Ошибка удаления друга:", error);
       toast.error("Ошибка удаления друга");
@@ -122,21 +121,19 @@ const FriendsPage = () => {
     <div className="bg-[#f3e6f5] p-6 rounded-xl">
       <h2 className="text-2xl font-bold mb-4">Друзья</h2>
 
-      {/* Поиск */}
       <div className="mb-4">
         <input
           type="text"
           placeholder="Поиск по имени"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="p-2 border rounded-2xl  mr-2"
+          className="p-2 border rounded-2xl mr-2"
         />
-        <Button onClick={handleSearch} variant = 'lightGreen' className="p-2 rounded">
+        <Button onClick={handleSearch} variant="lightGreen" className="p-2 rounded">
           Искать
         </Button>
       </div>
 
-      {/* Найденные пользователи */}
       <div className="mb-6">
         {users.length > 0 ? (
           users.map((user) => (
@@ -162,23 +159,15 @@ const FriendsPage = () => {
               </div>
 
               {user.isFriend ? (
-                <Button
-                  onClick={() => removeFriend(user.id)}
-                  variant="danger"
-                  className="px-3 py-1 rounded"
-                >
+                <Button onClick={() => removeFriend(user.id)} variant="danger" className="px-3 py-1 rounded">
                   Удалить из друзей
                 </Button>
               ) : user.requestSent ? (
-                <Button disabled className="px-3 py-1 rounded" variant="disabled" >
+                <Button disabled className="px-3 py-1 rounded" variant="disabled">
                   Заявка отправлена
                 </Button>
               ) : (
-                <Button
-                  onClick={() => sendFriendRequest(user.id)}
-                  variant="lightGreen"
-                  className=" px-3 py-1 rounded"
-                >
+                <Button onClick={() => sendFriendRequest(user.id)} variant="lightGreen" className="px-3 py-1 rounded">
                   Добавить в друзья
                 </Button>
               )}
@@ -189,7 +178,6 @@ const FriendsPage = () => {
         )}
       </div>
 
-      {/* Список друзей */}
       <div className="mb-6">
         <h3 className="text-xl font-bold mb-2">Ваши друзья ({friends.length})</h3>
         {friends.length > 0 ? (
@@ -214,11 +202,7 @@ const FriendsPage = () => {
                   <p className="text-sm text-gray-600">{friend.email}</p>
                 </div>
               </div>
-              <Button
-                onClick={() => removeFriend(friend.id)}
-                variant="danger"
-                className="px-3 py-1 rounded"
-              >
+              <Button onClick={() => removeFriend(friend.id)} variant="danger" className="px-3 py-1 rounded">
                 Удалить из друзей
               </Button>
             </div>
@@ -228,7 +212,6 @@ const FriendsPage = () => {
         )}
       </div>
 
-      {/* Входящие заявки */}
       <div>
         <h3 className="text-xl font-bold mb-2">Заявки в друзья ({friendRequests.length})</h3>
         {friendRequests.length > 0 ? (
@@ -270,7 +253,7 @@ const FriendsPage = () => {
                       toast.error("Ошибка принятия заявки");
                     }
                   }}
-                  className=" px-3 py-1 rounded mr-2"
+                  className="px-3 py-1 rounded mr-2"
                   variant="lightGreen"
                 >
                   Принять

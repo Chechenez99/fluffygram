@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'posts',
     'corsheaders',
     'groups',
+    'direct_messages',
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -77,6 +79,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pet_social.wsgi.application'
+ASGI_APPLICATION = "pet_social.asgi.application"
 
 
 # Database
@@ -169,3 +172,9 @@ mongoengine.connect(
     password='your_mongo_password',  # если требуется
     authentication_source='admin'    # если требуется
 )
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}

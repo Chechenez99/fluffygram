@@ -10,7 +10,8 @@ urlpatterns = [
     path('api/pets/', include('pets.urls')),     # питомцы
     path('api/posts/', include('posts.urls')),
     path('api/groups/', include('groups.urls')),  # путь для групп
-    path('api/users/', include('users.urls')),     # пользователи
+    path('api/users/', include('users.urls')),
+    path('api/direct_messages/', include('direct_messages.urls')),     # пользователи
 ]
 
 if settings.DEBUG:

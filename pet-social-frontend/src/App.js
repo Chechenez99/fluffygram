@@ -11,6 +11,8 @@ import NewsFeedPage from "./components/NewsFeed";
 import GroupCreatePage from "./components/GroupCreatePage";
 import GroupEditPage from "./components/GroupEditPage";
 import GroupDetailPage from "./components/GroupDetailPage";
+import ChatPage from "./components/ChatPage";
+import DialogsPage from "./components/DialogsPage";
 import "react-toastify/dist/ReactToastify.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -21,6 +23,9 @@ const ProtectedRoute = ({ children }) => {
 const AppWrapper = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("access"));
+
+  const [friendRequestsCount, setFriendRequestsCount] = useState(0);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("access"));
@@ -37,31 +42,48 @@ const AppWrapper = () => {
     <>
       <Routes>
         <Route
+          path="/"
+          element={
+            isLoggedIn ? (
+              <Navigate to="/profile" replace />
+            ) : (
+              <AuthPage onLogin={() => setIsLoggedIn(true)} />
+            )
+          }
+        />
+
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>
-              <MainLayout>
-                {(selectedSection, setSelectedSection) => {
-                  if (selectedSection !== "profile") {
-                    setSelectedSection("profile");
-                  }
-                  return (
-                    <ProfilePage
-                      onLogout={handleLogout}
-                      selectedSection={selectedSection}
-                      setSelectedSection={setSelectedSection}
-                    />
-                  );
-                }}
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
+                {(selectedSection, setSelectedSection) => (
+                  <ProfilePage
+                    onLogout={handleLogout}
+                    selectedSection={selectedSection}
+                    setSelectedSection={setSelectedSection}
+                  />
+                )}
               </MainLayout>
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/profile/:id"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 {(selectedSection, setSelectedSection) => (
                   <UserProfilePage
                     onLogout={handleLogout}
@@ -73,11 +95,17 @@ const AppWrapper = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/news"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 <NewsFeedPage />
               </MainLayout>
             </ProtectedRoute>
@@ -88,9 +116,58 @@ const AppWrapper = () => {
           path="/friends"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 {(selectedSection, setSelectedSection) => (
                   <FriendsPage
+                    selectedSection={selectedSection}
+                    setSelectedSection={setSelectedSection}
+                    setFriendRequestsCount={setFriendRequestsCount}
+                  />
+                )}
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dialogs"
+          element={
+            <ProtectedRoute>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
+                {(selectedSection, setSelectedSection) => (
+                  <DialogsPage
+                    selectedSection={selectedSection}
+                    setSelectedSection={setSelectedSection}
+                    setNewMessagesCount={setNewMessagesCount}
+                  />
+                )}
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chat/:dialogId"
+          element={
+            <ProtectedRoute>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
+                {(selectedSection, setSelectedSection) => (
+                  <ChatPage
                     selectedSection={selectedSection}
                     setSelectedSection={setSelectedSection}
                   />
@@ -99,11 +176,17 @@ const AppWrapper = () => {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/groups"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 {(selectedSection, setSelectedSection) => (
                   <GroupsPage
                     selectedSection={selectedSection}
@@ -114,11 +197,33 @@ const AppWrapper = () => {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/groups/create"
+          element={
+            <ProtectedRoute>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
+                <GroupCreatePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/groups/:id"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 {(selectedSection, setSelectedSection) => (
                   <GroupDetailPage
                     selectedSection={selectedSection}
@@ -129,39 +234,24 @@ const AppWrapper = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/groups/create"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <GroupCreatePage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/groups/:id/edit"
           element={
             <ProtectedRoute>
-              <MainLayout>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
                 <GroupEditPage />
               </MainLayout>
             </ProtectedRoute>
           }
         />
-
-        <Route
-          path="/"
-          element={
-            isLoggedIn ? (
-              <Navigate to="/profile" replace />
-            ) : (
-              <AuthPage onLogin={() => setIsLoggedIn(true)} />
-            )
-          }
-        />
       </Routes>
+
       <ToastContainer />
     </>
   );

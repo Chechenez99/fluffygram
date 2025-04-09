@@ -22,13 +22,22 @@ const LoginForm = ({ onLogin, onBack }) => {
       const { access, refresh, user_id } = response.data;
 
       if (access && refresh && user_id) {
-        localStorage.setItem("access", access);
-        localStorage.setItem("refresh", refresh);
-        localStorage.setItem("user_id", user_id);
-        console.log("🎯 Токены и user_id сохранены:", access, refresh, user_id);
-        onLogin();
-        navigate("/profile");
-      } else {
+          localStorage.setItem("access", access);
+          localStorage.setItem("refresh", refresh);
+          localStorage.setItem("user_id", user_id);
+          console.log("🎯 Токены и user_id сохранены:", access, refresh, user_id);
+
+          // Получаем username и сохраняем
+          const profileResponse = await axios.get("http://localhost:8000/api/profile/me/", {
+            headers: { Authorization: `Bearer ${access}` }
+          });
+
+          localStorage.setItem("username", profileResponse.data.username);
+          console.log("👤 Username сохранён:", profileResponse.data.username);
+
+          onLogin();
+          navigate("/profile");
+        } else {
         console.error("❌ Не удалось сохранить токены или user_id");
       }
     } catch (error) {
