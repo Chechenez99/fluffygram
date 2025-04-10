@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Button from "./Button";
 
-// Отдельные функции, чтобы можно было импортировать и вызывать из других компонентов
+// 👇 Отдельные функции (их можно вызывать и из других компонентов)
 export const fetchFriendRequests = async (setCount) => {
   try {
     const token = localStorage.getItem("access");
-    const res = await axios.get("http://localhost:8000/api/friend-requests/", {
+    const res = await axios.get("http://localhost:8000/api/users/friend-requests/", {
       headers: { Authorization: `Bearer ${token}` },
     });
     const incoming = res.data.filter((req) => !req.accepted);
@@ -48,6 +48,37 @@ const Sidebar = ({
   useEffect(() => {
     fetchFriendRequests(setFriendRequestsCount);
     fetchNewMessages(setNewMessagesCount);
+
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    const ws = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
+
+    ws.onopen = () => {
+      console.log("🔔 WebSocket подключён в Sidebar");
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "friend_request") {
+        console.log("📥 Новая заявка в друзья:", data);
+        setFriendRequestsCount((prev) => prev + 1);
+      }
+
+      if (data.type === "new_message") {
+        setNewMessagesCount((prev) => prev + 1);
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.error("❌ WebSocket ошибка:", e);
+    };
+
+    ws.onclose = () => {
+      console.log("🔌 WebSocket закрыт в Sidebar");
+    };
+
+    return () => ws.close();
   }, []);
 
   const menuItems = [
