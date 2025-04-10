@@ -5,6 +5,7 @@ import PostCard from "./PostCard";
 import PetCard from "./PetCard";
 import { toast } from "react-toastify";
 import Button from "./Button";
+import { useNavigate } from "react-router-dom"
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -28,7 +29,7 @@ const UserProfilePage = ({ onLogout }) => {
           return;
         }
 
-        const meRes = await axios.get(`${API_BASE_URL}/api/profile/me/`, {
+        const meRes = await axios.get(`${API_BASE_URL}/api/users/profile/me/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCurrentUserId(meRes.data.id);
@@ -46,7 +47,7 @@ const UserProfilePage = ({ onLogout }) => {
           axios.get(`${API_BASE_URL}/api/users/friends/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${API_BASE_URL}/api/friend-requests/`, {
+          axios.get(`${API_BASE_URL}/api/users/friend-requests/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -56,16 +57,26 @@ const UserProfilePage = ({ onLogout }) => {
         setIsFriend(friendsRes.data.map(f => f.id).includes(Number(id)));
         setPosts(postsRes.data);
 
-        const hasRequest = requestsRes.data.some(req =>
-          (req.sender === Number(id) || req.receiver === Number(id))
-        );
+const myId = Number(localStorage.getItem("user_id"));
+const hasRequest = requestsRes.data.some(req =>
+  (req.sender.id === myId && req.receiver.id === Number(id)) ||
+  (req.receiver.id === myId && req.sender.id === Number(id))
+);
+
+
         setRequestSent(hasRequest);
 
       } catch (err) {
-        console.error(err);
-        setError("Ошибка загрузки профиля");
-        onLogout();
-      }
+  console.error(err);
+  setError("Ошибка загрузки профиля");
+
+  // Проверим, не ошибка ли авторизации (401)
+  if (err.response?.status === 401) {
+    toast.error("Сессия истекла, войдите снова");
+    onLogout();
+  }
+}
+
     };
 
     fetchAll();
@@ -74,7 +85,7 @@ const UserProfilePage = ({ onLogout }) => {
   const handleSendRequest = async () => {
     try {
       const token = localStorage.getItem("access");
-      await axios.post(`${API_BASE_URL}/api/friend-requests/`, {
+      await axios.post(`${API_BASE_URL}/api/users/friend-requests/`, {
         receiver: id
       }, {
         headers: { Authorization: `Bearer ${token}` },
@@ -84,6 +95,25 @@ const UserProfilePage = ({ onLogout }) => {
       console.error(err);
     }
   };
+
+const navigate = useNavigate(); // внутри компонента
+
+const handleStartDialog = async () => {
+  try {
+    const token = localStorage.getItem("access");
+    const res = await axios.post(`${API_BASE_URL}/api/direct_messages/dialogs/start/`, {
+      recipient_id: id,
+    }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    navigate(`/chat/${res.data.id}`);
+  } catch (err) {
+    console.error(err);
+    toast.error("Ошибка при создании диалога");
+  }
+};
+
 
   const handleRemoveFriend = async () => {
     try {
@@ -146,7 +176,7 @@ const UserProfilePage = ({ onLogout }) => {
             <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
               {isFriend ? (
                 <>
-                  <Button variant="purple" onClick={() => alert("Переход в ЛС пока не реализован")}>
+                  <Button variant="purple" onClick={handleStartDialog}>
                     Сообщение
                   </Button>
                   <Button variant="danger" onClick={handleRemoveFriend}>

@@ -10,11 +10,13 @@ from .serializers import FriendRequestSerializer
 from .models import CustomUser
 from .serializers import UserSerializer
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import CustomUser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 
 
 class CustomTokenCreateView(TokenObtainPairView):
@@ -61,7 +63,7 @@ class FriendsListView(APIView):
             else:
                 friends.append(fr.sender)
 
-        serializer = UserSerializer(friends, many=True)
+        serializer = UserSerializer(friends, many=True, context={'request': request})
         return Response(serializer.data)
 
 
@@ -74,41 +76,63 @@ class UserSearchView(generics.ListAPIView):
         return CustomUser.objects.filter(username__istartswith=search_query).order_by('username')
 
 
+
 class FriendRequestViewSet(viewsets.ModelViewSet):
     serializer_class = FriendRequestSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        return FriendRequest.objects.filter(receiver=user, accepted=False)
+        return FriendRequest.objects.filter(
+            models.Q(receiver=user) | models.Q(sender=user), accepted=False
+        )
 
     def create(self, request, *args, **kwargs):
         receiver_id = request.data.get("receiver")
+
+        if not receiver_id:
+            return Response({"detail": "Поле receiver обязательно"}, status=400)
+
+        if request.user.id == int(receiver_id):
+            return Response({"detail": "Нельзя отправить заявку самому себе"}, status=400)
+
         if FriendRequest.objects.filter(
             models.Q(sender=request.user, receiver_id=receiver_id) |
             models.Q(sender_id=receiver_id, receiver=request.user)
         ).exists():
-            return Response({"detail": "Вы уже отправляли или получили заявку от этого пользователя"}, status=400)
+            return Response({"detail": "Заявка уже существует"}, status=400)
 
-        data = request.data.copy()
-        data['sender'] = request.user.id
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        receiver = CustomUser.objects.filter(id=receiver_id).first()
+        if not receiver:
+            return Response({"detail": "Пользователь не найден"}, status=404)
+
+        friend_request = FriendRequest.objects.create(sender=request.user, receiver=receiver)
+
+        # 📬 Отправляем уведомление через WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{receiver.id}",
+            {
+                "type": "new_friend_request",
+                "sender_id": request.user.id,
+                "sender_username": request.user.username,
+            }
+        )
+
+        serializer = self.get_serializer(friend_request, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        accepted = request.data.get('accepted')
+        accepted = request.data.get("accepted")
+
         if accepted is not None:
             instance.accepted = accepted
             instance.save()
-            serializer = self.get_serializer(instance)
+            serializer = self.get_serializer(instance, context={'request': request})
             return Response(serializer.data)
-        return Response({"detail": "Поле 'accepted' не предоставлено"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Поле 'accepted' обязательно"}, status=400)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -139,3 +163,19 @@ class RemoveFriendView(APIView):
             friendship.delete()
             return Response({"detail": "Друг удалён"}, status=204)
         return Response({"detail": "Дружба не найдена"}, status=404)
+
+class IncomingFriendRequestsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        requests = FriendRequest.objects.filter(receiver=request.user, accepted=False)
+        serializer = FriendRequestSerializer(requests, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class OutgoingFriendRequestsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        requests = FriendRequest.objects.filter(sender=request.user, accepted=False)
+        serializer = FriendRequestSerializer(requests, many=True, context={'request': request})
+        return Response(serializer.data)

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'groups',
     'direct_messages',
     "channels",
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -174,7 +175,10 @@ mongoengine.connect(
 )
 
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379)],
+        },
     },
 }

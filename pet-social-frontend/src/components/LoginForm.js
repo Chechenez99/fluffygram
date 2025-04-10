@@ -12,7 +12,7 @@ const LoginForm = ({ onLogin, onBack }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/jwt/create/", {
+      const response = await axios.post("http://localhost:8000/api/users/auth/jwt/create/", {
         username,
         password,
       });
@@ -28,7 +28,7 @@ const LoginForm = ({ onLogin, onBack }) => {
           console.log("🎯 Токены и user_id сохранены:", access, refresh, user_id);
 
           // Получаем username и сохраняем
-          const profileResponse = await axios.get("http://localhost:8000/api/profile/me/", {
+          const profileResponse = await axios.get("http://localhost:8000/api/users/profile/me/", {
             headers: { Authorization: `Bearer ${access}` }
           });
 

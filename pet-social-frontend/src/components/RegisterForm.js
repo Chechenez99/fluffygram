@@ -57,7 +57,7 @@ const RegisterForm = ({ onBack, onLogin }) => {
       console.log('Отправляем данные на сервер:', registerData);
 
       // Регистрация пользователя
-      const registerResponse = await axios.post(`${API_BASE_URL}/api/auth/users/`, registerData, {
+      const registerResponse = await axios.post(`${API_BASE_URL}/api/users/auth/users/`, registerData, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -72,7 +72,7 @@ const RegisterForm = ({ onBack, onLogin }) => {
       };
 
       console.log('Отправляем данные для входа:', loginData);
-      const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/jwt/create/`, loginData, {
+      const loginResponse = await axios.post(`${API_BASE_URL}/api/users/auth/jwt/create/`, loginData, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'

@@ -33,7 +33,7 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
         }
 
         const [userRes, petsRes, postsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/profile/me/`, {
+          axios.get(`${API_BASE_URL}/api/users/profile/me/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${API_BASE_URL}/api/pets/`, {

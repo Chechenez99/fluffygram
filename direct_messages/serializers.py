@@ -18,14 +18,21 @@ class UserShortSerializer(serializers.ModelSerializer):
 class DialogSerializer(serializers.ModelSerializer):
     user1 = UserShortSerializer(read_only=True)
     user2 = UserShortSerializer(read_only=True)
+    participants = UserShortSerializer(many=True, read_only=True)  # ← поле участников
     last_message_time = serializers.SerializerMethodField()
     last_message_text = serializers.SerializerMethodField()
     last_message_sender = serializers.SerializerMethodField()
     last_message_is_read = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(read_only=True)
+    unread_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Dialog
-        fields = ['id', 'user1', 'user2', 'created_at', 'last_message_time', 'last_message_text', 'last_message_sender', 'last_message_is_read']
+        fields = [
+            'id', 'user1', 'user2', 'participants', 'created_at',
+            'last_message_time', 'last_message_text', 'last_message_sender', 'last_message_is_read',
+            'is_group', 'title', 'avatar', 'unread_count'  # ← добавь сюда
+        ]
 
     def get_last_message_time(self, obj):
         last = obj.messages.order_by('-timestamp').first()
@@ -42,6 +49,10 @@ class DialogSerializer(serializers.ModelSerializer):
     def get_last_message_is_read(self, obj):
         last = obj.messages.order_by('-timestamp').first()
         return last.is_read if last else True
+
+    def get_unread_count(self, obj):
+        user = self.context['request'].user
+        return obj.messages.filter(is_read=False).exclude(sender=user).count()
 
 
 

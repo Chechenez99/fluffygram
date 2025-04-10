@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AuthPage from "./components/AuthPage";
 import ProfilePage from "./components/ProfilePage";
@@ -26,10 +26,39 @@ const AppWrapper = () => {
 
   const [friendRequestsCount, setFriendRequestsCount] = useState(0);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const token = localStorage.getItem("access");
+  const notificationsSocketRef = useRef(null);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("access"));
-  }, []);
+    setIsLoggedIn(!!token);
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      notificationsSocketRef.current = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
+
+      notificationsSocketRef.current.onopen = () => {
+        console.log("Notifications WebSocket подключён");
+      };
+
+      notificationsSocketRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "new_group_chat") {
+          window.dispatchEvent(new Event("newGroupChat"));
+        }
+      };
+
+      notificationsSocketRef.current.onerror = (e) => {
+        console.error("Notifications WebSocket ошибка:", e);
+      };
+
+      notificationsSocketRef.current.onclose = () => {
+        console.log("Notifications WebSocket закрыт");
+      };
+    }
+
+    return () => notificationsSocketRef.current?.close();
+  }, [token]);
 
   const handleLogout = () => {
     localStorage.removeItem("access");
