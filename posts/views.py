@@ -2,8 +2,14 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from .models import Post, Comment, PostImage
+from .models import Post, Comment, PostImage, Like
 from .serializers import PostSerializer, CommentSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.views import APIView
+from django.db.models import Q
+from users.models import FriendRequest
+from .serializers import PostSerializer
+from groups.models import Group  # только если используется где-то
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-created_at')
@@ -71,13 +77,6 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'У тебя нет прав удалить этот пост.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
-from rest_framework.views import APIView
-from django.db.models import Q
-from users.models import FriendRequest
-from .serializers import PostSerializer
-from groups.models import Group  # только если используется где-то
-
-
 class NewsFeedView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -100,3 +99,23 @@ class NewsFeedView(APIView):
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_like(request, post_id):
+    user = request.user
+    try:
+        post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Пост не найден"}, status=404)
+
+    like, created = Like.objects.get_or_create(user=user, post=post)
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+
+    return Response({
+        "likes_count": post.likes.count(),
+        "liked_by_user": liked
+    })

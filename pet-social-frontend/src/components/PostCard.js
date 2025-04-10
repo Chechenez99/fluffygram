@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaHeart, FaComment, FaRetweet, FaTrash } from "react-icons/fa";
 import Button from "./Button";
 
@@ -8,6 +8,29 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
   const isOwner = isGroupPost
     ? post.group_creator_id === currentUserId
     : post.user_id === currentUserId;
+
+  const [liked, setLiked] = useState(post.liked_by_user);
+  const [likesCount, setLikesCount] = useState(post.likes_count);
+
+  const toggleLike = async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/posts/${post.id}/like/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem("access")}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLiked(data.liked_by_user);
+        setLikesCount(data.likes_count);
+      } else {
+        console.error("Ошибка при переключении лайка");
+      }
+    } catch (error) {
+      console.error("Ошибка сети:", error);
+    }
+  };
 
   const getAvatarSrc = () => {
     const avatar = isGroupPost ? post.group_avatar : post.user_avatar;
@@ -90,9 +113,12 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
         {/* Нижняя панель: кнопки */}
         <div className="flex items-center justify-between mt-4 text-[#4b3f4e] text-sm">
           <div className="flex gap-6 items-center">
-            <button className="flex items-center gap-1 hover:text-red-500 transition">
+            <button
+              onClick={toggleLike}
+              className={`flex items-center gap-1 transition ${liked ? "text-red-500" : "hover:text-red-500"}`}
+            >
               <FaHeart />
-              <span>{post.likes_count || 0}</span>
+              <span>{likesCount}</span>
             </button>
             <button className="flex items-center gap-1 hover:text-blue-500 transition">
               <FaComment />

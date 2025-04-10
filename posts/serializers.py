@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Post, PostImage, Comment
+from .models import Post, PostImage, Like, Comment
 from moderation.utils import filter_banned_words
 from groups.models import Group
 
@@ -28,6 +28,7 @@ class PostSerializer(serializers.ModelSerializer):
     likes_count = serializers.SerializerMethodField()
     comments = CommentSerializer(many=True, read_only=True)
     images = PostImageSerializer(many=True, read_only=True)
+    liked_by_user = serializers.SerializerMethodField()
     group = serializers.PrimaryKeyRelatedField(
         queryset=Group.objects.all(),
         required=False,
@@ -54,7 +55,8 @@ class PostSerializer(serializers.ModelSerializer):
             'images',
             'group', 
             'group_name', 
-            'group_avatar'
+            'group_avatar',
+            'liked_by_user',
         ]
         read_only_fields = [
             'id', 'user', 'user_id', 'created_at',
@@ -73,3 +75,9 @@ class PostSerializer(serializers.ModelSerializer):
         if not value or len(value) == 0:
             raise serializers.ValidationError("Необходимо указать хотя бы один хэштег")
         return value
+
+    def get_liked_by_user(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return obj.likes.filter(user=user).exists()
+        return False
