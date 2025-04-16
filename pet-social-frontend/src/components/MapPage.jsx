@@ -5,8 +5,10 @@ const MapPage = () => {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ text: '', rating: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [geoData, setGeoData] = useState(null);
   const mapRef = useRef(null);
-  const [allPlacemarks, setAllPlacemarks] = useState([]);
+  const geoDataLoadedRef = useRef(false);
+  const searchTimeoutRef = useRef(null);
 
   const getStorageKey = (id) => `reviews_${id}`;
 
@@ -30,22 +32,33 @@ const MapPage = () => {
   };
 
   const getAverageRating = (reviewsList) => {
-    if (reviewsList.length === 0) return 0;
+    if (!reviewsList || reviewsList.length === 0) return 0;
     const sum = reviewsList.reduce((acc, r) => acc + r.rating, 0);
     return (sum / reviewsList.length).toFixed(1);
   };
 
   const renderPlacemarks = useCallback((geojson, mapInstance, filter = '') => {
-    if (!mapInstance || !window.ymaps) return;
+    if (!mapInstance || !window.ymaps || !geojson || !geojson.features) {
+      console.warn('❌ Отсутствуют необходимые данные для отображения меток');
+      return;
+    }
+    
+    console.log('✅ Отрисовка меток на карте', geojson.features.length, 'с фильтром:', filter);
     mapInstance.geoObjects.removeAll();
-    const placemarks = [];
 
+    let visibleCount = 0;
+    
     geojson.features.forEach((feature, index) => {
+      if (!feature.geometry || !feature.geometry.coordinates) {
+        console.warn(`❌ Отсутствуют координаты в объекте ${index + 1}`);
+        return;
+      }
+
       const [lon, lat] = feature.geometry.coordinates;
       const properties = feature.properties || {};
       const rawDescription = properties['description'] || '';
       const description = rawDescription.replace(/<\/?br\s*\/?>/gi, '');
-      const label = properties['iconCaption'] || '';
+      const label = properties['iconCaption'] || `Метка ${index + 1}`;
 
       if (isNaN(lat) || isNaN(lon)) {
         console.warn(`❌ Невалидные координаты в объекте ${index + 1}`, feature);
@@ -53,11 +66,18 @@ const MapPage = () => {
       }
 
       const id = `${label}_${lat}_${lon}`;
-      const avgRating = getAverageRating(loadReviews(id));
+      const placeReviews = loadReviews(id);
+      const avgRating = getAverageRating(placeReviews);
       const stars = '⭐'.repeat(Math.round(avgRating)) || '—';
 
-      const text = `${label} ${description}`.toLowerCase();
-      if (!text.includes(filter.toLowerCase())) return;
+      const searchableText = `${label} ${description}`.toLowerCase();
+      const currentFilter = (filter || '').toLowerCase();
+      
+      if (currentFilter && !searchableText.includes(currentFilter)) {
+        return;
+      }
+      
+      visibleCount++;
 
       const balloonContentLayout = window.ymaps.templateLayoutFactory.createClass(`
         <div style="background: #f3e6f5; color: #4b2a67; padding: 12px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); max-width: 260px;">
@@ -70,7 +90,7 @@ const MapPage = () => {
       const placemark = new window.ymaps.Placemark([lat, lon], {
         hintContent: label
       }, {
-        preset: 'islands#blueIcon',
+        preset: 'islands#violetIcon',
         balloonPanelMaxMapArea: 0,
         hideIconOnBalloonOpen: false,
         balloonCloseButton: true,
@@ -84,81 +104,158 @@ const MapPage = () => {
       });
 
       mapInstance.geoObjects.add(placemark);
-      placemarks.push({ placemark, label, description });
     });
-
-    setAllPlacemarks(placemarks);
+    
+    console.log(`✅ Отображено ${visibleCount} меток из ${geojson.features.length}`);
   }, [loadReviews]);
 
+  // Загрузка GeoJSON данных
   useEffect(() => {
-    let loadedGeoJSON = null;
-
-    const initMap = () => {
-      const map = new window.ymaps.Map('yandex-map-container', {
-        center: [55.030204, 82.92043],
-        zoom: 12,
-        controls: ['zoomControl'],
+    if (geoDataLoadedRef.current) return; // Загружаем данные только один раз
+    
+    console.log('🔄 Загрузка GeoJSON данных...');
+    fetch('/pet_map.geojson')
+      .then(res => {
+        if (!res.ok) throw new Error(`Ошибка HTTP: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        console.log('✅ GeoJSON загружен успешно', data);
+        setGeoData(data);
+        geoDataLoadedRef.current = true;
+      })
+      .catch(err => {
+        console.error('❌ Ошибка загрузки GeoJSON:', err);
+        geoDataLoadedRef.current = false; // Разрешаем повторную попытку загрузки
       });
-      mapRef.current = map;
+  }, []);
 
-      fetch('/pet_map.geojson')
-        .then(response => response.json())
-        .then((geojson) => {
-          loadedGeoJSON = geojson;
-          renderPlacemarks(geojson, map);
-        })
-        .catch((err) => {
-          console.error('❌ Ошибка загрузки GeoJSON:', err);
+  // Инициализация карты
+  useEffect(() => {
+    const initMap = () => {
+      try {
+        console.log('🗺️ Инициализация карты...');
+        const mapContainer = document.getElementById('yandex-map-container');
+        if (!mapContainer) {
+          console.error('❌ Не найден контейнер для карты');
+          return;
+        }
+        
+        // Если карта уже инициализирована, не создаем новую
+        if (mapRef.current) {
+          console.log('ℹ️ Карта уже инициализирована');
+          return;
+        }
+        
+        const map = new window.ymaps.Map('yandex-map-container', {
+          center: [55.030204, 82.92043],
+          zoom: 12,
+          controls: ['zoomControl']
         });
+        
+        mapRef.current = map;
+        console.log('✅ Карта инициализирована успешно');
+        
+        // Если данные уже загружены, отрисовываем метки
+        if (geoData) {
+          console.log('ℹ️ Данные уже загружены, отрисовываем метки');
+          renderPlacemarks(geoData, map, searchQuery);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка инициализации карты:', error);
+      }
     };
 
-    if (window.ymaps?.Map) {
-      window.ymaps.ready(initMap);
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a244dd44-304c-49d1-b724-a13d0aed0451';
-      script.type = 'text/javascript';
-      script.crossOrigin = 'anonymous';
-      script.onload = () => window.ymaps.ready(initMap);
-      document.head.appendChild(script);
-    }
+    const loadYmaps = () => {
+      if (window.ymaps?.Map) {
+        console.log('ℹ️ API Яндекс.Карт уже загружен');
+        if (window.ymaps.ready.done) {
+          initMap();
+        } else {
+          window.ymaps.ready(initMap);
+        }
+      } else {
+        console.log('🔄 Загрузка API Яндекс.Карт...');
+        const existingScript = document.querySelector('script[src*="api-maps.yandex.ru"]');
+        
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a244dd44-304c-49d1-b724-a13d0aed0451';
+          script.type = 'text/javascript';
+          script.onload = () => {
+            console.log('✅ API Яндекс.Карт загружен');
+            window.ymaps.ready(initMap);
+          };
+          script.onerror = () => {
+            console.error('❌ Ошибка загрузки API Яндекс.Карт');
+          };
+          document.head.appendChild(script);
+        } else {
+          console.log('ℹ️ Скрипт API Яндекс.Карт уже добавлен');
+          if (window.ymaps) {
+            window.ymaps.ready(initMap);
+          }
+        }
+      }
+    };
+
+    loadYmaps();
 
     return () => {
       if (mapRef.current) {
+        console.log('🧹 Очистка карты');
         mapRef.current.destroy();
         mapRef.current = null;
       }
     };
-  }, [renderPlacemarks]);
+  }, [geoData, renderPlacemarks, searchQuery]);
 
-  useEffect(() => {
-    if (mapRef.current) {
-      fetch('/pet_map.geojson')
-        .then(response => response.json())
-        .then((geojson) => renderPlacemarks(geojson, mapRef.current, searchQuery));
+  // Обработка изменений в поисковом запросе с дебаунсингом
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [searchQuery, renderPlacemarks]);
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      if (mapRef.current && geoData) {
+        console.log('🔍 Применение поискового фильтра:', query);
+        renderPlacemarks(geoData, mapRef.current, query);
+      }
+    }, 300); // Дебаунсинг для снижения нагрузки при быстром вводе
+  };
+
+  // Обновление меток при изменении данных
+  useEffect(() => {
+    if (mapRef.current && geoData) {
+      console.log('🔄 Обновление меток с новыми данными');
+      renderPlacemarks(geoData, mapRef.current, searchQuery);
+    }
+  }, [geoData, renderPlacemarks, searchQuery]);
+
+  // Очистка таймаута при размонтировании
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-[#baa6ba] p-6 rounded-xl min-h-screen">
-      <h2 className="text-3xl font-bold mb-4 text-white">📍 Карта ветсервисов с поиском</h2>
+      <h2 className="text-3xl font-bold mb-4 text-white">Карта ветсервисов</h2>
 
       <div className="mb-4 flex gap-2 items-center">
         <input
           type="text"
-          placeholder="🔍 Поиск по меткам..."
+          placeholder="🔍 Поиск..."
           className="p-2 rounded-xl border border-purple-300 shadow-sm w-full max-w-md"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleSearchChange}
         />
-        <a
-          href="https://yandex.ru/maps"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-white underline whitespace-nowrap"
-        >
-          🔗 В Яндекс.Картах
-        </a>
       </div>
 
       <div
