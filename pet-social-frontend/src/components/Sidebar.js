@@ -7,17 +7,22 @@ import Button from "./Button";
 export const fetchFriendRequests = async (setCount) => {
   try {
     const token = localStorage.getItem("access");
-    const res = await axios.get("http://localhost:8000/api/users/friend-requests/", {
+
+    // Загружаем только входящие заявки
+    const res = await axios.get("http://localhost:8000/api/users/friend-requests/incoming/", {
       headers: { Authorization: `Bearer ${token}` },
     });
+
     const incoming = res.data.filter((req) => !req.accepted);
+
     if (typeof setCount === "function") {
       setCount(incoming.length);
     }
   } catch (error) {
-    console.error("Ошибка загрузки заявок в друзья:", error);
+    console.error("Ошибка загрузки входящих заявок в друзья:", error);
   }
 };
+
 
 export const fetchNewMessages = async (setCount) => {
   try {

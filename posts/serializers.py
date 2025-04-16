@@ -4,13 +4,31 @@ from moderation.utils import filter_banned_words
 from groups.models import Group
 
 
+from .models import CommentLike
+
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
-    
+    replies = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    liked_by_user = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'content', 'created_at']
+        fields = ['id', 'user', 'post', 'content', 'created_at', 'parent', 'replies', 'likes_count', 'liked_by_user']
         read_only_fields = ['id', 'user', 'created_at']
+
+    def get_replies(self, obj):
+        replies = obj.replies.all().order_by('created_at')
+        return CommentSerializer(replies, many=True, context=self.context).data
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_liked_by_user(self, obj):
+        user = self.context.get("request").user
+        if user.is_authenticated:
+            return obj.likes.filter(user=user).exists()
+        return False
 
 
 class PostImageSerializer(serializers.ModelSerializer):
@@ -36,6 +54,8 @@ class PostSerializer(serializers.ModelSerializer):
     )
     group_name = serializers.CharField(source='group.name', read_only=True)
     group_avatar = serializers.ImageField(source='group.avatar', read_only=True)
+    original_post = serializers.SerializerMethodField()
+    original_post_id = serializers.IntegerField(source='original_post.id', read_only=True)
 
 
     class Meta:
@@ -57,6 +77,8 @@ class PostSerializer(serializers.ModelSerializer):
             'group_name', 
             'group_avatar',
             'liked_by_user',
+            'original_post',
+            'original_post_id',
         ]
         read_only_fields = [
             'id', 'user', 'user_id', 'created_at',
@@ -81,3 +103,9 @@ class PostSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return obj.likes.filter(user=user).exists()
         return False
+
+    def get_original_post(self, obj):
+        if obj.original_post:
+            return PostSerializer(obj.original_post, context=self.context).data
+        return None
+

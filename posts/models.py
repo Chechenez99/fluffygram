@@ -25,12 +25,20 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     repost_count = models.PositiveIntegerField(default=0)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True, related_name='posts')
+    original_post = models.ForeignKey(
+    'self',
+    null=True,
+    blank=True,
+    on_delete=models.SET_NULL,
+    related_name='reposts'
+)
 
     def save(self, *args, **kwargs):
-        if filter_banned_words(self.content):
-            raise ValueError("Сообщение содержит запрещенные слова")
-        if not self.hashtags or len(self.hashtags) == 0:
-            raise ValueError("Необходимо указать хотя бы один хэштег")
+        if not getattr(self, 'original_post', None):  # Только если это НЕ репост
+            if filter_banned_words(self.content):
+                raise ValueError("Сообщение содержит запрещенные слова")
+            if not self.hashtags or len(self.hashtags) == 0:
+                raise ValueError("Необходимо указать хотя бы один хэштег")
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -43,19 +51,13 @@ class PostImage(models.Model):
     def __str__(self):
         return f"Image for post {self.post.id}"
 
+# models.py
 class Comment(models.Model):
-    post = models.ForeignKey(
-        Post,
-        on_delete=models.CASCADE,
-        related_name='comments'
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='comments'
-    )
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')  # 🆕
 
     def __str__(self):
         return f"Comment by {self.user.username} on {self.post.id}"
@@ -70,3 +72,15 @@ class Like(models.Model):
 
     def __str__(self):
         return f"{self.user.username} лайкнул пост {self.post.id}"
+
+
+class CommentLike(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'comment')
+
+    def __str__(self):
+        return f"{self.user.username} лайкнул комментарий {self.comment.id}"

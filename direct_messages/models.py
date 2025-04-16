@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from posts.models import Post 
 
 User = get_user_model()
 
@@ -18,14 +19,15 @@ class Dialog(models.Model):
         else:
             return f"Диалог: {self.user1.username} и {self.user2.username}"
 
-
 class Message(models.Model):
     dialog = models.ForeignKey(Dialog, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')  # 👈 добавь это
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages', null=True, blank=True)
     text = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-
+    shared_post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True, related_name='shared_in_messages')  # 🆕
+    media = models.FileField(upload_to='chat_media/', null=True, blank=True)  
+    edited = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.sender.username}: {self.text[:30]}"

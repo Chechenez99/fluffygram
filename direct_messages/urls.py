@@ -6,7 +6,10 @@ from .views import (
     MessageCreateView,
     delete_dialog_self,
     delete_dialog_all,
+    edit_message,  # 🆕
+    delete_message,  # 🆕
 )
+
 from .views import mark_messages_read  
 from .views import get_unread_messages
 from .views import create_or_get_dialog 
@@ -26,6 +29,8 @@ urlpatterns = [
     path('dialogs/start/', create_or_get_dialog, name='create-or-get-dialog'),
     path("group_chats/", create_group_chat),
     path("group_chats/<int:dialog_id>/", update_group_chat),
+    path('messages/<int:message_id>/edit/', edit_message),
+    path('messages/<int:message_id>/delete/', delete_message),
 
 ]
 

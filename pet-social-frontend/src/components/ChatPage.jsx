@@ -4,6 +4,7 @@ import axios from "axios";
 import Button from "./Button";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
+import PostCard from "./PostCard";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isSameOrBefore);
 dayjs.locale("ru");
@@ -12,6 +13,10 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
   const { dialogId } = useParams();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [mediaFile, setMediaFile] = useState(null);
+  const [showEditMessageModal, setShowEditMessageModal] = useState(false);
+  const [editMessageId, setEditMessageId] = useState(null);
+  const [editText, setEditText] = useState("");
   const [isGroup, setIsGroup] = useState(false);
   const [dialogData, setDialogData] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
@@ -23,6 +28,8 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
   const socketRef = useRef(null);
   const scrollRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojis = ["😊", "😂", "❤️", "🥺", "👍", "🔥", "🎉", "😎", "🙌", "😭", "😍","💩","😺","😸","😹","😻","😼","😽","🙀","😿","😾","🙈","🙉","🙊"];
   const token = localStorage.getItem("access");
   const username = localStorage.getItem("username");
   const navigate = useNavigate();
@@ -107,16 +114,17 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
         return;
       }
 
-      if (data.message) {
-        setMessages((prev) => [
-          ...prev,
-          { 
-            text: data.message, 
-            sender: { username: data.sender }, 
+      if (data.message || data.shared_post) {
+        setMessages((prev) => {
+          const newMsg = {
+            text: data.message || "Пост",
+            sender: { username: data.sender },
             timestamp: new Date().toISOString(),
-            is_read: false 
-          },
-        ]);
+            is_read: false,
+            shared_post: data.shared_post || null,
+          };
+          return [...prev, newMsg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        });
       }
     };
 
@@ -156,7 +164,7 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
         socketRef.current.close(1000, "Component unmounted");
       }
     };
-  }, [dialogId]);
+  }, [dialogId, token]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -166,64 +174,75 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
   }, [messages]);
 
   const sendMessage = () => {
-    if (!text.trim()) return;
+    if (!text.trim() && !mediaFile) return;
 
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(
-        JSON.stringify({
-          message: text,
-          sender: username,
-        })
-      );
+    const formData = new FormData();
+    formData.append("dialog", dialogId);
+    if (text.trim()) formData.append("text", text);
+    if (mediaFile) formData.append("media", mediaFile);
 
-      axios.post(
-        "http://localhost:8000/api/direct_messages/messages/create/",
-        {
-          dialog: dialogId,
-          text: text,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      ).catch(err => console.error("Error creating message:", err));
+    axios.post("http://localhost:8000/api/direct_messages/messages/create/", formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    })
+      .then(() => {
+        setText("");
+        setMediaFile(null);
+        fetchMessages();
 
-      setText("");
-    } else {
-      console.error("WebSocket not connected, reconnecting...");
-      initializeWebSocket();
-      // Store message to try sending again
-      const pendingMessage = text;
-      setText("");
-      
-      // Try to send after reconnection
-      setTimeout(() => {
+        // Send WebSocket message if connected
         if (socketRef.current?.readyState === WebSocket.OPEN) {
           socketRef.current.send(
             JSON.stringify({
-              message: pendingMessage,
+              message: text,
               sender: username,
             })
           );
-          
-          axios.post(
-            "http://localhost:8000/api/direct_messages/messages/create/",
-            {
-              dialog: dialogId,
-              text: pendingMessage,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          ).catch(err => console.error("Error creating message:", err));
-        } else {
-          alert("Не удалось отправить сообщение. Проверьте соединение.");
-          setText(pendingMessage); // Return text to input
         }
-      }, 1000);
-    }
+      })
+      .catch(err => console.error("Error sending message:", err));
   };
 
-  const saveGroupChat = async () => {
+  
+  const editSelectedMessage = () => {
+    if (!editText.trim()) return;
+
+    axios.patch(`http://localhost:8000/api/direct_messages/messages/${editMessageId}/edit/`, {
+      text: editText,
+    }, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(() => {
+        setShowEditMessageModal(false);
+        setEditMessageId(null);
+        setEditText("");
+        fetchMessages();
+      })
+      .catch((err) => {
+        alert("Ошибка при редактировании");
+        console.error(err);
+      });
+  };
+
+
+
+  const deleteMessageById = (id) => {
+    axios.delete(`http://localhost:8000/api/direct_messages/messages/${id}/delete/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(() => {
+        fetchMessages();
+      })
+      .catch((err) => {
+        alert("Ошибка при удалении");
+        console.error(err);
+      });
+  };
+
+
+const saveGroupChat = async () => {
     const formData = new FormData();
     formData.append("title", newTitle);
     if (newAvatar) formData.append("avatar", newAvatar);
@@ -269,31 +288,78 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
 
       const isOwn = msg.sender.username === username;
 
-      return (
-        <div key={index} className="space-y-1">
-          {showDate && (
-            <div className="text-center text-sm text-gray-500 mt-4 mb-2">{msgDate}</div>
-          )}
-          <div
-            className={`max-w-[75%] p-3 rounded-lg shadow-sm ${
-              isOwn
-                ? "bg-[#c084cf] text-white self-end ml-auto"
-                : "bg-[#f3e6f5] text-[#4b3f4e] mr-auto"
-            }`}
+return (
+  <div key={index} className="space-y-1">
+    {showDate && (
+      <div className="text-center text-sm text-gray-500 mt-4 mb-2">{msgDate}</div>
+    )}
+    <div
+      className={`relative max-w-[60%] p-3 rounded-lg shadow-sm ${
+        isOwn
+          ? "bg-[#c084cf] text-white self-end ml-auto"
+          : "bg-[#f3e6f5] text-[#4b3f4e] mr-auto"
+      }`}
+    >
+      {/* Кнопки ✏ и 🗑 */}
+      {msg.sender.username === username && dayjs().diff(dayjs(msg.timestamp), "minute") < 10 && (
+        <div className="absolute top-2 right-2 flex gap-2 z-10">
+          <button
+            onClick={() => {
+              setEditMessageId(msg.id);
+              setEditText(msg.text);
+              setShowEditMessageModal(true);
+            }}
+            className="p-1 bg-white rounded-full border border-[#c084cf] hover:bg-[#f3e6f5] shadow transition"
+            title="Редактировать сообщение"
           >
-            <p className="text-sm font-semibold">{msg.sender.username}</p>
-            <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-            <p className="text-xs text-right mt-1 opacity-60">
-              {dayjs(msg.timestamp).format("HH:mm")}
-              {msg.is_read ? (
-                <span className="text-light-blue-500 ml-2">✓✓</span>
-              ) : (
-                <span className="text-light-blue-500 ml-2">✓</span>
-              )}
-            </p>
-          </div>
+            <svg className="w-4 h-4 text-[#c084cf]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l10.914-10.914a1 1 0 000-1.414l-3.536-3.536a1 1 0 00-1.414 0L4 15.586V20z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => deleteMessageById(msg.id)}
+            className="p-1 bg-white rounded-full border border-red-300 hover:bg-red-100 shadow transition"
+            title="Удалить сообщение"
+          >
+            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      );
+      )}
+
+      <p className="text-sm font-semibold">{msg.sender.username}</p>
+      <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+
+      {msg.media && (
+        msg.media.endsWith(".mp4") ? (
+          <video controls className="mt-2 max-w-full rounded">
+            <source src={msg.media} type="video/mp4" />
+            Ваш браузер не поддерживает видео.
+          </video>
+        ) : (
+          <img src={msg.media} alt="Медиа" className="mt-2 max-w-xs rounded shadow" />
+        )
+      )}
+
+      {msg.shared_post && (
+        <div className="mt-3">
+          <PostCard post={msg.shared_post} />
+        </div>
+      )}
+
+      <p className="text-xs text-right mt-1 opacity-60">
+        {dayjs(msg.timestamp).format("HH:mm")}{msg.edited ? " (изменено)" : ""}
+        {msg.is_read ? (
+          <span className="text-light-blue-500 ml-2">✓✓</span>
+        ) : (
+          <span className="text-light-blue-500 ml-2">✓</span>
+        )}
+      </p>
+    </div>
+  </div>
+);
+
     });
   };
 
@@ -306,19 +372,18 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
         ← Назад
       </button>
 
-      <div className="bg-[#f3e6f5] rounded-2xl shadow-xl p-6 w-full max-w-3xl mx-auto flex flex-col" style={{ height: "80vh" }}>
+      <div className="bg-[#f3e6f5] rounded-2xl shadow-xl p-6 w-full  mx-auto flex flex-col" style={{ height: "90vh" }}>
         <h2 className="text-2xl font-bold text-center text-[#4b3f4e] mb-4">
           {isGroup ? dialogData.title || "Групповой чат" : "Диалог"}
         </h2>
 
-          {isGroup && dialogData.user1?.id === parseInt(localStorage.getItem("user_id")) && (
-            <div className="flex justify-end mb-4">
-              <Button variant="secondary" onClick={openEditModal}>
-                ✏️ Редактировать чат
-              </Button>
-            </div>
-          )}
-
+        {isGroup && dialogData.user1?.id === parseInt(localStorage.getItem("user_id")) && (
+          <div className="flex justify-end mb-4">
+            <Button variant="secondary" onClick={openEditModal}>
+              ✏️ Редактировать чат
+            </Button>
+          </div>
+        )}
 
         <div ref={messagesContainerRef} className="bg-white rounded-xl p-4 overflow-y-auto space-y-2 mb-4 shadow-inner flex flex-col flex-grow">
           {renderMessages()}
@@ -333,6 +398,65 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
             className="flex-grow px-4 py-2 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c084cf]"
           />
+          <div className="relative">
+            <button
+              onClick={() => setShowEmojiPicker((prev) => !prev)}
+              className="px-2 py-1 rounded-xl bg-white shadow border text-xl"
+              title="Эмодзи"
+            >
+              😊
+            </button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-14 right-0 bg-white p-3 rounded-xl shadow-lg z-50 w-60">
+                  <div className="grid grid-cols-5 gap-2">
+                    {emojis.map((emoji) => (
+                      <button
+                        key={emoji}
+                        className="text-2xl hover:scale-125 transition"
+                        onClick={() => {
+                          setText((prev) => prev + emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+
+          <label className="cursor-pointer rounded-xl border border-gray-300 px-4 py-2 bg-white text-[#4b3f4e] hover:bg-gray-100 transition flex items-center gap-2 shadow-sm">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 9.4L7.91 18a2.12 2.12 0 01-3 0 2.12 2.12 0 010-3L14 6.91a3 3 0 014.24 4.24L10.5 18.91" />
+            </svg>
+            <span className="text-sm">Прикрепить</span>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={(e) => setMediaFile(e.target.files[0])}
+              className="hidden"
+            />
+          </label>
+          {mediaFile && (
+            <div className="flex items-center gap-3 mt-2 bg-white border border-gray-300 rounded-xl px-4 py-2 shadow-sm">
+              {mediaFile.type.startsWith("image/") && (
+                <img
+                  src={URL.createObjectURL(mediaFile)}
+                  alt="Превью"
+                  className="w-12 h-12 object-cover rounded"
+                />
+              )}
+              <div className="flex-1 text-sm text-[#4b3f4e] truncate">{mediaFile.name}</div>
+              <button
+                onClick={() => setMediaFile(null)}
+                className="text-red-500 hover:text-red-700 font-bold text-lg"
+                title="Удалить файл"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <Button onClick={sendMessage} variant="primary" className="w-full sm:w-auto">
             Отправить
           </Button>
@@ -436,6 +560,26 @@ export default function ChatPage({ selectedSection, setSelectedSection }) {
           </div>
         </div>
       )}
+        {showEditMessageModal && (
+          <div className="fixed inset-0 bg-[#baa6ba] bg-opacity-80 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md border-4 border-white">
+              <div className="bg-[#f3e6f5] p-6 rounded-2xl">
+                <h2 className="text-xl font-bold mb-4 text-[#4b3f4e] text-center">Редактировать сообщение</h2>
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl p-3 mb-4 text-[#4b3f4e] focus:ring-2 focus:ring-[#c084cf] focus:outline-none"
+                  rows="4"
+                  placeholder="Введите новый текст сообщения..."
+                />
+                <div className="flex justify-end gap-3">
+                  <Button variant="secondary" onClick={() => setShowEditMessageModal(false)}>Отмена</Button>
+                  <Button variant="lightGreen" onClick={editSelectedMessage}>Сохранить</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

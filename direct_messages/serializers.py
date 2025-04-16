@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Dialog, Message
 from django.contrib.auth import get_user_model
+from posts.serializers import PostSerializer
+
 
 User = get_user_model()
 
@@ -58,7 +60,9 @@ class DialogSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserShortSerializer(read_only=True)
-
+    text = serializers.CharField(required=False, allow_blank=True)
+    shared_post = PostSerializer(read_only=True)  # 🆕
+    media = serializers.FileField(required=False)  # 🆕
     class Meta:
         model = Message
-        fields = ['id', 'dialog', 'sender', 'text', 'timestamp', 'is_read']
+        fields = ['id', 'dialog', 'sender', 'text', 'timestamp', 'is_read', 'shared_post', 'media']

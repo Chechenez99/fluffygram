@@ -13,6 +13,7 @@ import GroupEditPage from "./components/GroupEditPage";
 import GroupDetailPage from "./components/GroupDetailPage";
 import ChatPage from "./components/ChatPage";
 import DialogsPage from "./components/DialogsPage";
+import MapPage from "./components/MapPage";
 import "react-toastify/dist/ReactToastify.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -275,6 +276,22 @@ const AppWrapper = () => {
                 setNewMessagesCount={setNewMessagesCount}
               >
                 <GroupEditPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute>
+              <MainLayout
+                friendRequestsCount={friendRequestsCount}
+                setFriendRequestsCount={setFriendRequestsCount}
+                newMessagesCount={newMessagesCount}
+                setNewMessagesCount={setNewMessagesCount}
+              >
+                <MapPage />
               </MainLayout>
             </ProtectedRoute>
           }

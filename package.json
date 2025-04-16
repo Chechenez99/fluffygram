@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "react-image-lightbox": "^5.1.4"
+    "@pbe/react-yandex-maps": "^1.2.5",
+    "react-image-lightbox": "^5.1.4",
+    "react-yandex-maps": "^4.6.0"
   }
 }

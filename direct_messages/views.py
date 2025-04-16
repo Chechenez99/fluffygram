@@ -16,8 +16,8 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.shortcuts import render
 from django.db import models
-
-
+from django.utils import timezone
+from datetime import timedelta
 
 
 @api_view(['DELETE'])
@@ -236,9 +236,41 @@ class MessageCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         dialog = serializer.validated_data['dialog']
         current_user = self.request.user
+        media = self.request.FILES.get('media')  # 🆕
 
         if dialog.is_group:
-            serializer.save(sender=current_user, receiver=None)
+            serializer.save(sender=current_user, receiver=None, media=media)
         else:
             receiver = dialog.user2 if dialog.user1 == current_user else dialog.user1
-            serializer.save(sender=current_user, receiver=receiver)
+            serializer.save(sender=current_user, receiver=receiver, media=media)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def edit_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    if request.user != message.sender:
+        return Response({"error": "Вы не автор сообщения"}, status=403)
+
+    if timezone.now() - message.timestamp > timedelta(minutes=10):
+        return Response({"error": "Время редактирования истекло"}, status=403)
+
+    new_text = request.data.get("text", "")
+    message.text = new_text
+    message.edited = True
+    message.save()
+
+    return Response({"status": "edited", "text": new_text})
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    if request.user != message.sender:
+        return Response({"error": "Вы не автор сообщения"}, status=403)
+
+    if timezone.now() - message.timestamp > timedelta(minutes=10):
+        return Response({"error": "Время удаления истекло"}, status=403)
+
+    message.delete()
+    return Response({"status": "deleted"})
