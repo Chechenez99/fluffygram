@@ -14,7 +14,11 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework import status
 from direct_messages.models import Dialog, Message  # если нужно, добавь
-
+from rest_framework import viewsets, permissions
+from .models import PostReport
+from .serializers import PostReportSerializer
+from rest_framework.permissions import  IsAdminUser
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-created_at')
@@ -55,19 +59,20 @@ class PostViewSet(viewsets.ModelViewSet):
         hashtag = self.request.query_params.get("hashtag")
 
         if user_id:
-            queryset = queryset.filter(user_id=user_id, group__isnull=True)
+            queryset = queryset.filter(user_id=user_id, group__isnull=True, is_hidden=False)
 
         if group_id:
-            queryset = queryset.filter(group_id=group_id)
+            queryset = queryset.filter(group_id=group_id, is_hidden=False)
 
         if hashtag:
             hashtag = hashtag.lower()
-            queryset = queryset.filter(hashtags__icontains=hashtag)
+            queryset = queryset.filter(hashtags__icontains=hashtag, is_hidden=False)
 
         if not user_id and not group_id and not hashtag:
-            queryset = queryset.filter(user=self.request.user, group__isnull=True)
+            queryset = queryset.filter(user=self.request.user, group__isnull=True, is_hidden=False)
 
         return queryset
+
 
     def perform_create(self, serializer):
         group_id = self.request.POST.get('group') or self.request.data.get('group')
@@ -81,7 +86,6 @@ class PostViewSet(viewsets.ModelViewSet):
 
         post = serializer.save(user=self.request.user, group=group)
 
-        # 💡 Обрабатываем до 10 изображений
         for image_file in self.request.FILES.getlist("images")[:10]:
             PostImage.objects.create(post=post, image=image_file)
 
@@ -125,8 +129,10 @@ class NewsFeedView(APIView):
 
         # 3. Посты от друзей и из групп
         posts = Post.objects.filter(
-            Q(user_id__in=friend_ids) | Q(group_id__in=group_ids)
+            Q(user_id__in=friend_ids) | Q(group_id__in=group_ids),
+            is_hidden=False
         ).order_by('-created_at')
+
 
         serializer = PostSerializer(posts, many=True, context={'request': request})
         return Response(serializer.data)
@@ -252,3 +258,60 @@ def share_post_to_chat(request, chat_id):
         return Response({'error': 'Чат не найден'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+class IsReporterOrAdmin(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.user == obj.reporter or request.user.is_staff
+
+class PostReportViewSet(viewsets.ModelViewSet):
+    serializer_class = PostReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = PostReport.objects.all()
+
+        if user.is_staff:
+            qs = qs.filter(is_resolved=False)
+        else:
+            qs = qs.filter(reporter=user, is_resolved=False)
+
+        post_id = self.request.query_params.get("post")
+        if post_id:
+            qs = qs.filter(post_id=post_id)
+
+        return qs
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [IsAuthenticated()]
+        if self.action in ["create"]:
+            return [IsAuthenticated()]
+        return [IsReporterOrAdmin()]
+
+    # В views.py, добавьте логирование в perform_create
+    def perform_create(self, serializer):
+        print("Данные запроса:", self.request.data)
+        try:
+            serializer.save(reporter=self.request.user)
+        except Exception as e:
+            print(f"Ошибка при создании отчета: {str(e)}")
+            raise
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Сохраняем изменения в жалобе
+        self.perform_update(serializer)
+
+        # 💥 Если жалоба была одобрена (удалить пост) — скрываем сам пост
+        is_deleted = serializer.validated_data.get("is_deleted")
+        if is_deleted is True:
+            post = instance.post
+            post.is_hidden = True
+            post.save()
+
+        return Response(serializer.data)

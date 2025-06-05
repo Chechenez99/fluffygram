@@ -14,6 +14,7 @@ import GroupDetailPage from "./components/GroupDetailPage";
 import ChatPage from "./components/ChatPage";
 import DialogsPage from "./components/DialogsPage";
 import MapPage from "./components/MapPage";
+import AdminReportsPage from "./components/AdminReportsPage";
 import "react-toastify/dist/ReactToastify.css";
 
 const ProtectedRoute = ({ children }) => {
@@ -292,6 +293,22 @@ const AppWrapper = () => {
                 setNewMessagesCount={setNewMessagesCount}
               >
                 <MapPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin-reports"
+          element={
+            <ProtectedRoute>
+              <MainLayout
+                friendRequestsCount={0}
+                setFriendRequestsCount={() => {}}
+                newMessagesCount={0}
+                setNewMessagesCount={() => {}}
+              >
+                <AdminReportsPage />
               </MainLayout>
             </ProtectedRoute>
           }

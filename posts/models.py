@@ -24,6 +24,7 @@ class Post(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     repost_count = models.PositiveIntegerField(default=0)
+    is_hidden = models.BooleanField(default=False)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True, related_name='posts')
     original_post = models.ForeignKey(
     'self',
@@ -84,3 +85,11 @@ class CommentLike(models.Model):
 
     def __str__(self):
         return f"{self.user.username} лайкнул комментарий {self.comment.id}"
+
+# models.py
+class PostReport(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_resolved = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(null=True, blank=True)  # True/False если решено, None — в рассмотрении

@@ -169,8 +169,8 @@ mongoengine.connect(
     db='pet_social_mongo',           # имя базы MongoDB
     host='localhost',                # адрес MongoDB сервера
     port=27017,                      # порт MongoDB
-    username='your_mongo_username',  # если требуется
-    password='your_mongo_password',  # если требуется
+    username='username',             # если требуется
+    password='password',             # если требуется
     authentication_source='admin'    # если требуется
 )
 

@@ -5,7 +5,6 @@ const variants = {
   disabled: 'bg-[#e2e2e2] text-[#303030] cursor-not-allowed',
   lightGreen: 'bg-[#c4e1c1] text-[#2f4f28] hover:bg-[#a4d0a0] active:bg-[#8bba87]',
   purple: 'bg-[#b46db6] text-white hover:bg-[#a157a7] active:bg-[#8e4694]',
-   // светло-зеленая кнопка
 };
 
 const Button = ({

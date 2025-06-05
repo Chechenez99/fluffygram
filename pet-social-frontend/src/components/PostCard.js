@@ -23,6 +23,8 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
   const [showRepostModal, setShowRepostModal] = useState(false);
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatList, setChatList] = useState([]);
+  const [reportStatusCheckTrigger, setReportStatusCheckTrigger] = useState(0);
+  const [reportStatus, setReportStatus] = useState(post.reported ? "Жалоба на рассмотрении" : "Пожаловаться");
 
   useEffect(() => {
     const likeInfo = {};
@@ -160,6 +162,36 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
     }
   };
 
+const handleReportPost = async () => {
+  if (reportStatus !== "Пожаловаться") return;
+
+  const currentUserId = parseInt(localStorage.getItem("user_id"));
+
+  try {
+    const res = await fetch("http://localhost:8000/api/posts/post-reports/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("access")}`,
+      },
+      body: JSON.stringify({
+        post_id: post.id// Добавляем ID пользователя
+      }),
+    });
+    
+    if (res.ok) {
+      setReportStatus("Жалоба на рассмотрении");
+      setReportStatusCheckTrigger((prev) => prev + 1);
+    } else {
+      const errorData = await res.json();
+      console.error("Детали ошибки:", errorData);
+      alert(`Ошибка при отправке жалобы: ${JSON.stringify(errorData)}`);
+    }
+  } catch (err) {
+    console.error("Ошибка при отправке жалобы:", err);
+  }
+};
+
   const handleDeleteComment = async (id) => {
     try {
       const res = await fetch(`http://localhost:8000/api/posts/comments/${id}/`, {
@@ -190,10 +222,22 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
               {name[0]?.toUpperCase()}
             </div>
           )}
-          <div>
-            <a href={profileUrl} className="font-semibold text-gray-800 hover:underline">{name}</a>
-            <p className="text-xs text-gray-500">{new Date(p.created_at).toLocaleString("ru-RU")}</p>
-          </div>
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <a href={profileUrl} className="font-semibold text-gray-800 hover:underline">{name}</a>
+                <p className="text-xs text-gray-500">{new Date(p.created_at).toLocaleString("ru-RU")}</p>
+              </div>
+              {!isOwner && (
+                <Button
+                  onClick={handleReportPost}
+                  variant={reportStatus === "Жалоба на рассмотрении" ? "secondary" : "danger"}
+                  disabled={reportStatus !== "Пожаловаться"}
+                  className="ml-4 text-xs py-1 px-2"
+                >
+                  {reportStatus}
+                </Button>
+              )}
+            </div>
         </div>
         {p.content && <p className="text-gray-800 whitespace-pre-wrap">{p.content}</p>}
         {Array.isArray(p.hashtags) && p.hashtags.length > 0 && (
@@ -237,6 +281,7 @@ const PostCard = ({ post, onDelete, onHashtagClick }) => {
         </div>
       );
     });
+
 
 // Добавьте эту функцию в компонент PostCard перед return
 const handleRepostInChat = async (chatId, comment = "") => {
@@ -288,6 +333,47 @@ useEffect(() => {
   
   fetchChats();
 }, []);
+useEffect(() => {
+  const handler = (e) => {
+    const updatedPostId = e.detail?.postId;
+
+    if (updatedPostId === post.id) {
+      console.log("📢 Получено событие отклонения жалобы, обновляю статус...");
+      setReportStatusCheckTrigger((prev) => prev + 1);
+    }
+  };
+
+  window.addEventListener("reportStatusChanged", handler);
+  return () => window.removeEventListener("reportStatusChanged", handler);
+}, [post.id]);
+
+useEffect(() => {
+  const checkReportStatus = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/api/posts/post-reports/?post=${post.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access")}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.some((r) => r.is_resolved === false)) {
+          setReportStatus("Жалоба на рассмотрении");
+        } else {
+          setReportStatus("Пожаловаться");
+        }
+      }
+    } catch (e) {
+      console.error("Ошибка при проверке жалобы:", e);
+    }
+  };
+
+  checkReportStatus();
+}, [post.id, reportStatusCheckTrigger]);
+
+
+
 
   return (
     <div className="bg-[#baa6ba] border-4 border-white rounded-2xl p-3 shadow-inner">

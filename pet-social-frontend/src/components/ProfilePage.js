@@ -82,7 +82,7 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
 
     try {
       const token = localStorage.getItem("access");
-      const res = await axios.patch(`${API_BASE_URL}/api/profile/me/`, formData, {
+      const res = await axios.patch(`${API_BASE_URL}/api/users/profile/me/`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -140,6 +140,15 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
     }
   };
 
+  const fetchPets = async () => {
+  const token = localStorage.getItem("access");
+  const res = await axios.get(`${API_BASE_URL}/api/pets/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  setPets(res.data);
+};
+
+
   const renderSection = () => {
     switch (selectedSection) {
       case "profile":
@@ -181,11 +190,17 @@ const ProfilePage = ({ onLogout, selectedSection, setSelectedSection }) => {
                     <PetForm onSuccess={() => setIsAddPetDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>
-                {pets.length > 0 ? (
-                  pets.map((pet) => <PetCard key={pet.id} pet={pet} />)
-                ) : (
-                  <p className="text-green-500 text-center">Нет питомцев</p>
-                )}
+                  {pets.length > 0 ? (
+                    pets.map((pet) => (
+                      <PetCard
+                        key={pet.id}
+                        pet={pet}
+                        onUpdated={fetchPets}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-green-500 text-center">Нет питомцев</p>
+                  )}
               </div>
             </div>
             <div className="md:w-2/3 space-y-6  ">

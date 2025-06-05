@@ -72,9 +72,11 @@ export default function PetForm({ onSuccess, petId, initialData = {} }) {
     setIsLoading(true);
 
     try {
+      const ownerId = localStorage.getItem("user_id");
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("species", data.species);
+      formData.append("owner", ownerId);
       if (data.breed) formData.append("breed", data.breed);
       if (data.about) formData.append("about", data.about);
 

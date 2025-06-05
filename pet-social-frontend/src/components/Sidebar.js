@@ -1,20 +1,16 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Button from "./Button";
 
-// 👇 Отдельные функции (их можно вызывать и из других компонентов)
 export const fetchFriendRequests = async (setCount) => {
   try {
     const token = localStorage.getItem("access");
-
-    // Загружаем только входящие заявки
     const res = await axios.get("http://localhost:8000/api/users/friend-requests/incoming/", {
       headers: { Authorization: `Bearer ${token}` },
     });
 
     const incoming = res.data.filter((req) => !req.accepted);
-
     if (typeof setCount === "function") {
       setCount(incoming.length);
     }
@@ -23,13 +19,13 @@ export const fetchFriendRequests = async (setCount) => {
   }
 };
 
-
 export const fetchNewMessages = async (setCount) => {
   try {
     const token = localStorage.getItem("access");
     const res = await axios.get("http://localhost:8000/api/direct_messages/unread/", {
       headers: { Authorization: `Bearer ${token}` },
     });
+
     if (typeof setCount === "function") {
       setCount(res.data.unread_count);
     }
@@ -50,6 +46,8 @@ const Sidebar = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     fetchFriendRequests(setFriendRequestsCount);
     fetchNewMessages(setNewMessagesCount);
@@ -58,32 +56,35 @@ const Sidebar = ({
     if (!token) return;
 
     const ws = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
-
-    ws.onopen = () => {
-      console.log("🔔 WebSocket подключён в Sidebar");
-    };
+    ws.onopen = () => console.log("🔔 WebSocket подключён в Sidebar");
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "friend_request") {
-        console.log("📥 Новая заявка в друзья:", data);
         setFriendRequestsCount((prev) => prev + 1);
       }
-
       if (data.type === "new_message") {
         setNewMessagesCount((prev) => prev + 1);
       }
     };
 
-    ws.onerror = (e) => {
-      console.error("❌ WebSocket ошибка:", e);
-    };
-
-    ws.onclose = () => {
-      console.log("🔌 WebSocket закрыт в Sidebar");
-    };
+    ws.onerror = (e) => console.error("❌ WebSocket ошибка:", e);
+    ws.onclose = () => console.log("🔌 WebSocket закрыт в Sidebar");
 
     return () => ws.close();
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+
+    axios.get("http://localhost:8000/api/users/me/", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      setIsAdmin(res.data.is_staff);
+    }).catch(err => {
+      console.error("Ошибка при проверке is_staff:", err);
+    });
   }, []);
 
   const menuItems = [
@@ -107,35 +108,47 @@ const Sidebar = ({
   return (
     <div className="bg-white shadow-md p-4 rounded-2xl w-60 flex flex-col justify-between min-h-full">
       <ul className="space-y-3">
-        {menuItems.map((item) => {
-          const isActive =
-            (location.pathname === "/profile" && selectedSection === item.section) ||
-            (location.pathname !== "/profile" && location.pathname === item.path);
+        {isAdmin ? (
+          <li className="mt-4">
+            <Button
+              onClick={() => navigate("/admin-reports")}
+              variant={location.pathname === "/admin-reports" ? "primary" : "secondary"}
+              className="w-full text-left px-4 py-2 rounded-xl transition-colors"
+            >
+              📋 Панель жалоб
+            </Button>
+          </li>
+        ) : (
+          menuItems.map((item) => {
+            const isActive =
+              (location.pathname === "/profile" && selectedSection === item.section) ||
+              (location.pathname !== "/profile" && location.pathname === item.path);
 
-          return (
-            <li key={item.section} className="relative">
-              <Button
-                onClick={() => handleClick(item)}
-                variant={isActive ? "primary" : "secondary"}
-                className="w-full text-left px-4 py-2 rounded-xl transition-colors"
-              >
-                {item.label}
+            return (
+              <li key={item.section} className="relative">
+                <Button
+                  onClick={() => handleClick(item)}
+                  variant={isActive ? "primary" : "secondary"}
+                  className="w-full text-left px-4 py-2 rounded-xl transition-colors"
+                >
+                  {item.label}
 
-                {item.section === "friends" && friendRequestsCount > 0 && (
-                  <span className="absolute top-2.5 right-2 bg-white text-[#b46db6] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border border-[#b46db6]">
-                    {friendRequestsCount}
-                  </span>
-                )}
+                  {item.section === "friends" && friendRequestsCount > 0 && (
+                    <span className="absolute top-2.5 right-2 bg-white text-[#b46db6] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border border-[#b46db6]">
+                      {friendRequestsCount}
+                    </span>
+                  )}
 
-                {item.section === "dialogs" && newMessagesCount > 0 && (
-                  <span className="absolute top-2.5 right-2 bg-white text-[#b46db6] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border border-[#b46db6]">
-                    {newMessagesCount}
-                  </span>
-                )}
-              </Button>
-            </li>
-          );
-        })}
+                  {item.section === "dialogs" && newMessagesCount > 0 && (
+                    <span className="absolute top-2.5 right-2 bg-white text-[#b46db6] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border border-[#b46db6]">
+                      {newMessagesCount}
+                    </span>
+                  )}
+                </Button>
+              </li>
+            );
+          })
+        )}
       </ul>
 
       <Button

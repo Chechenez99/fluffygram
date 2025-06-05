@@ -33,10 +33,11 @@ class UserSerializer(serializers.ModelSerializer):
     city = serializers.CharField(source="profile.city", default="", read_only=True)
     bio = serializers.CharField(source="profile.bio", default="", read_only=True)
     avatar = serializers.SerializerMethodField()
+    is_staff = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'username', 'email', 'avatar', 'bio', 'city')
+        fields = ('id', 'username', 'email', 'avatar', 'bio', 'city', 'is_staff')
 
     def get_avatar(self, obj):
         request = self.context.get('request')

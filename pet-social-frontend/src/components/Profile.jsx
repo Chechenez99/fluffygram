@@ -7,7 +7,7 @@ export default function Profile() {
 
   useEffect(() => {
     axios
-      .get("/api/profile/me/", {
+      .get("/api/users/profile/me/", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access")}`,
         },

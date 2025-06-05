@@ -161,12 +161,6 @@ const RegisterForm = ({ onBack, onLogin }) => {
           required 
           minLength={8}
         />
-        <Input 
-          type="text" 
-          name="city" 
-          placeholder="Город" 
-          onChange={handleChange} 
-        />
         <Button 
           type="submit" 
           disabled={loading}

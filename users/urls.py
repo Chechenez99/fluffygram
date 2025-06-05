@@ -11,6 +11,7 @@ from .views import (
     IncomingFriendRequestsView,
     OutgoingFriendRequestsView,
 )
+from .views import current_user_view
 
 router = DefaultRouter()
 router.register(r'friend-requests', FriendRequestViewSet, basename='friend-request')
@@ -27,6 +28,7 @@ urlpatterns = [
     path("profile/me/", UserProfileView.as_view(), name="user-profile"),
 
     # Пользователи
+    path("me/", current_user_view, name="current-user"),  # ⬅️ Вот эта строка
     path('search/', UserSearchView.as_view(), name='user-search'),
     path('friends/', FriendsListView.as_view(), name='friends-list'),
     path('friends/remove/<int:user_id>/', RemoveFriendView.as_view(), name='remove-friend'),
@@ -34,4 +36,5 @@ urlpatterns = [
 
     # router — в самом конце, чтобы не перебивал другие пути
     path('', include(router.urls)),
+
 ]
